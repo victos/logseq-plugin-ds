@@ -1,15 +1,6 @@
 import '@logseq/libs';
-import {
-  blockToText,
-  composeAppend,
-  composeProperty,
-  composeReplace,
-  propertyKey,
-  readCurrentContent,
-  stripTag,
-  tagSuffix,
-  withTag,
-} from './block';
+import { propertyKey, stripTag, tagSuffix, withTag } from './block';
+import { blockOps } from './graph';
 import { chat, ChatMessage, ChatResult } from './deepseek';
 import { getOutputParser, OutputParser } from './parsers';
 import { buildUserMessage, DEFAULT_SYSTEM, resolvePrompts } from './prompt';
@@ -25,8 +16,6 @@ function getPrompts() {
   return resolvePrompts(presetPrompts, getSettings().customPrompts);
 }
 
-const currentContent = (uuid: string) => readCurrentContent(logseq.Editor, uuid);
-
 /** The response as the pieces the output mode works with: one per list item or `key: value` pair. */
 function responseItems(parser: OutputParser | undefined, response: string): string[] {
   if (!parser) {
@@ -39,18 +28,14 @@ function responseItems(parser: OutputParser | undefined, response: string): stri
 }
 
 async function runPrompt(definition: IPrompt, uuid: string) {
-  const block = await logseq.Editor.getBlock(uuid, { includeChildren: true });
-  if (!block) {
-    return;
-  }
-
   const { apiKey, basePath, model, temperature, tag: tagName } = getSettings();
   const tag = tagSuffix(tagName);
 
-  // Root text comes from the editor when the block is being edited (merged over
-  // the saved content so hidden properties survive); children come from the DB.
-  const rootContent = (await currentContent(uuid)) ?? block.content;
-  const content = stripTag(blockToText({ ...block, content: rootContent }), tag).trim();
+  // Which adapter applies is resolved per invocation, so switching between a
+  // file graph and a DB graph does not need a plugin reload.
+  const ops = await blockOps(logseq.App, logseq.Editor as never);
+
+  const content = stripTag(await ops.readContext(uuid), tag).trim();
   if (!content) {
     await logseq.UI.showMsg('The block is empty — nothing to send to DeepSeek.', 'warning');
     return;
@@ -79,34 +64,32 @@ async function runPrompt(definition: IPrompt, uuid: string) {
   }
   const response = result.content;
 
-  // Re-read (same merge): the user may have kept typing while the request was in flight.
-  const latest = await currentContent(uuid);
-  if (latest === null) {
+  // Re-read: the user may have kept typing while the request was in flight.
+  if ((await ops.readText(uuid)) === null) {
     await logseq.UI.showMsg('The block was deleted while DeepSeek was answering.', 'warning');
     return;
   }
 
-  const items = responseItems(parser, response);
   switch (definition.output) {
     case PromptOutputType.property: {
-      const key = propertyKey(definition.name);
-      const value = items.join(parser?.kind === 'structured' ? ' ' : ', ');
-      await logseq.Editor.updateBlock(uuid, composeProperty(latest, key, value, tag));
+      const value = responseItems(parser, response).join(parser ? ', ' : '');
+      await ops.setProperty(uuid, propertyKey(definition.name), value, tag);
       break;
     }
     case PromptOutputType.insert: {
+      const items = responseItems(parser, response);
       // The tag marks AI-written text, so it goes on the new child blocks; the
       // user's own block is not touched (this is what makes Fact Check safe).
       for (const item of items) {
-        await logseq.Editor.insertBlock(uuid, withTag(item, tag));
+        await ops.insertChild(uuid, withTag(item, tag));
       }
       break;
     }
     case PromptOutputType.replace:
-      await logseq.Editor.updateBlock(uuid, composeReplace(latest, response, tag));
+      await ops.replaceText(uuid, response, tag);
       break;
     case PromptOutputType.append:
-      await logseq.Editor.updateBlock(uuid, composeAppend(latest, response, tag));
+      await ops.appendText(uuid, response, tag);
       break;
   }
 

@@ -10,6 +10,8 @@
 /** A block as returned by `logseq.Editor.getBlock`; children may be `[":uuid", id]` tuples. */
 export interface BlockLike {
   content?: string | null;
+  /** DB graphs carry the prose here instead of in `content`. */
+  title?: unknown;
   children?: unknown;
 }
 
@@ -73,11 +75,19 @@ function isBlock(value: unknown): value is BlockLike {
 
 /**
  * Flattens a block and its descendants into the text sent to the model:
- * the root's text, then each child as an indented `- ` item.
- * Property lines are dropped — they are metadata, not prose.
+ * the root's text, then each child as an indented `- ` item. Metadata is
+ * dropped: `textOf` decides how one block's prose is extracted, which differs
+ * between file graphs (strip `key:: value` lines) and DB graphs (use `title`).
  */
-export function blockToText(block: BlockLike): string {
-  const lines = [splitProperties(block.content ?? '').body];
+export function fileText(block: BlockLike): string {
+  return splitProperties(block.content ?? '').body;
+}
+
+export function blockToText(
+  block: BlockLike,
+  textOf: (block: BlockLike) => string = fileText,
+): string {
+  const lines = [textOf(block)];
 
   const walk = (children: unknown, level: number) => {
     if (!Array.isArray(children)) {
@@ -87,7 +97,7 @@ export function blockToText(block: BlockLike): string {
       if (!isBlock(child)) {
         continue;
       }
-      const { body } = splitProperties(child.content ?? '');
+      const body = textOf(child);
       if (body) {
         const indent = '\t'.repeat(level);
         const [first, ...rest] = body.split('\n');

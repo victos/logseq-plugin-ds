@@ -83,6 +83,27 @@ Logseq 的元数据（`id::`、`collapsed::`，以及你自己写的 `key:: valu
 模型看到的是你的正文，不是这些管道 —— 写回时再放回去。如果你在块里还没敲完就执行了命令，
 插件用的是编辑器里当前的内容，而不是上一次保存的版本。
 
+## 文件图与 DB 图
+
+Logseq 的两种存储后端对「块」的建模完全不同，插件会自动适配当前打开的图 —— **每次执行命令时
+检测一次**，所以切换图不需要重载插件。
+
+| | 文件图 | DB 图 |
+| --- | --- | --- |
+| 块的正文 | `content`，和 `key:: value` 行混在一起 | `title` |
+| 属性 | 块内部的文本行 | 独立的实体 |
+| `/Summarize` 写什么 | 一行 `summarize:: …` | 通过 API 写 `summarize` 属性 |
+
+文件图上，属性行会在发送前被剥离、写回时原样恢复；DB 图上正文和属性本来就是分开的，替换文本
+根本碰不到属性，也就无需重组。
+
+**DB 那条路径有单元测试，但从未在真实的 DB 图上跑过。** 它是照着 `@logseq/libs` 的类型定义写的。
+在你亲自验证之前，请当它是未经实测的 —— 这也是 `marketplace/manifest.json` 里
+`supportsDB` 仍为 `false` 的原因。
+
+DB API 需要 `@logseq/libs` 0.3.x。在更老的 Logseq 上（没有 `checkCurrentIsDbGraph` 这个 API），
+插件会回退到文件图路径 —— 这是正确的，因为那些版本本来就只有文件图。
+
 ## 设置项
 
 | 设置 | 默认值 | 说明 |
@@ -176,7 +197,7 @@ Logseq 的元数据（`id::`、`collapsed::`，以及你自己写的 `key:: valu
 ## 开发者信息
 
 ```sh
-pnpm test    # 112 个单元测试（vitest）
+pnpm test    # 132 个单元测试（vitest）
 pnpm lint    # 对 src/ 和 test/ 跑 eslint
 pnpm build   # tsc + vite，产物在 dist/
 ```
@@ -186,13 +207,14 @@ pnpm build   # tsc + vite，产物在 dist/
 | 文件 | 职责 |
 | --- | --- |
 | `src/main.ts` | Logseq 胶水层：注册命令、读写块。没有单元测试 |
+| `src/graph.ts` | 文件图 / DB 图适配层，所有对块的读写都走这里 |
 | `src/block.ts` | 块内容处理 —— 属性拆分、标签、编辑器与数据库内容合并 |
 | `src/prompt.ts` | 拼装 prompt、校验自定义命令 |
 | `src/deepseek.ts` | API 客户端 |
 | `src/parsers.ts` | 把回复解析成列表或结构化字段 |
 | `src/prompts/` | 内置 prompt，一个文件一条；`index.ts` 决定顺序 |
 
-运行时依赖只有 `@logseq/libs`，客户端就是一次 `fetch`。产物约 38 kB（gzip 后）。
+运行时依赖只有 `@logseq/libs`，客户端就是一次 `fetch`。产物约 43.1 kB（gzip 后）。
 
 ### 相比原项目改了什么
 

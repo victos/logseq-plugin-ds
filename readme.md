@@ -89,6 +89,29 @@ sending — the model sees your writing, not the plumbing — and is put back af
 run a command while still typing in the block, the plugin uses what is in the editor, not the
 last saved version.
 
+## File graphs and DB graphs
+
+Logseq stores a block differently depending on the backend, and the plugin adapts to whichever
+graph is open — checked per command, so switching graphs needs no reload.
+
+| | File graph | DB graph |
+| --- | --- | --- |
+| Block text | `content`, mixed with `key:: value` lines | `title` |
+| Properties | text lines inside the block | separate entities |
+| What `/Summarize` writes | a `summarize:: …` line | a `summarize` property via the API |
+
+On a file graph the property lines are split off before the text is sent, and restored
+untouched afterwards. On a DB graph the text can be replaced without touching properties at
+all, so nothing has to be reassembled.
+
+**The DB path is unit tested but has never run against a real DB graph.** It is written against
+the `@logseq/libs` type definitions. Treat it as untested in practice until you have tried it,
+which is why `marketplace/manifest.json` still declares `supportsDB: false`.
+
+Requires `@logseq/libs` 0.3.x for the DB APIs. On older Logseq builds, where
+`checkCurrentIsDbGraph` does not exist, the plugin falls back to the file-graph path — which is
+correct, since those builds only have file graphs.
+
 ## Settings
 
 | Setting | Default | What it is for |
@@ -185,7 +208,7 @@ Still stuck? Open the Logseq developer console (`Ctrl+Shift+I`) — the full err
 ## For developers
 
 ```sh
-pnpm test    # 112 unit tests (vitest)
+pnpm test    # 132 unit tests (vitest)
 pnpm lint    # eslint over src/ and test/
 pnpm build   # tsc + vite → dist/
 ```
@@ -195,6 +218,7 @@ Source layout:
 | File | Responsibility |
 | --- | --- |
 | `src/main.ts` | Logseq glue: registers commands, reads and writes blocks. Not unit-tested |
+| `src/graph.ts` | File-graph / DB-graph adapters; everything that touches a block goes through it |
 | `src/block.ts` | Block content — property splitting, tags, editor/DB merge |
 | `src/prompt.ts` | Prompt assembly and custom-prompt validation |
 | `src/deepseek.ts` | The API client |
@@ -202,7 +226,7 @@ Source layout:
 | `src/prompts/` | The built-in prompts, one per file; `index.ts` sets the order |
 
 `@logseq/libs` is the only runtime dependency; the client is a single `fetch` call. Bundle is
-about 38 kB gzipped.
+about 43 kB gzipped.
 
 ### What changed from the original
 
