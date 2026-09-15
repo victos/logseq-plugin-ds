@@ -150,6 +150,22 @@ saved from the DB editor still reads back with the tag as text, how `updateBlock
 block that is being edited, and whether the bundled `@logseq/libs` 0.3.x client boots correctly
 inside an older file-graph Logseq build.
 
+### Rewriting a block that has children
+
+`/Polish`, `/Shorten`, `/Expand` and the `/Tone:` commands rewrite the block **and everything
+under it**. The model gets the subtree as an outline and returns a rewritten one; the plugin
+applies it back over the blocks that already exist, updating each in place so its identity —
+and therefore any `((reference))` to it, and its properties — survives. The rewrite may merge
+or split lines: extra lines become new blocks, and blocks left over are removed.
+
+One thing is never removed: a block something links to. On a file graph that is a block
+carrying `id::`, which Logseq writes only once a reference exists; on a DB graph the plugin
+cannot ask what links to a block, so **nothing is removed there at all**. Either way the
+surplus block stays put and a notification tells you how many were kept, for you to delete by
+hand.
+
+Because one command can now touch several blocks, undo may take more than one Ctrl+Z.
+
 ## Settings
 
 | Setting | Default | What it is for |
@@ -253,7 +269,7 @@ Still stuck? Open the Logseq developer console (`Ctrl+Shift+I`) — the full err
 ## For developers
 
 ```sh
-pnpm test    # 156 unit tests (vitest)
+pnpm test    # 178 unit tests (vitest)
 pnpm lint    # eslint over src/ and test/
 pnpm build   # tsc + vite → dist/
 ```

@@ -1,0 +1,122 @@
+import { describe, expect, it } from 'vitest';
+import { ExistingBlock, OutlineNode, parseOutline, planRewrite, renderOutline } from '../src/outline';
+
+const node = (text: string, ...children: OutlineNode[]): OutlineNode => ({ text, children });
+
+const block = (uuid: string, text: string, opts: { linked?: boolean; children?: ExistingBlock[] } = {}): ExistingBlock => ({
+  uuid,
+  text,
+  linked: opts.linked ?? false,
+  children: opts.children ?? [],
+});
+
+describe('parseOutline', () => {
+  it('reads the tree the model was asked to mirror', () => {
+    expect(parseOutline('Root\n\t- One\n\t\t- Deep\n\t- Two')).toEqual(
+      node('Root', node('One', node('Deep')), node('Two')),
+    );
+  });
+
+  it('accepts spaces, bullets and numbering', () => {
+    expect(parseOutline('Root\n  * One\n    1. Deep\n  - Two')).toEqual(
+      node('Root', node('One', node('Deep')), node('Two')),
+    );
+  });
+
+  it('survives over-indentation instead of losing the line', () => {
+    expect(parseOutline('Root\n\t\t\t\t- One')).toEqual(node('Root', node('One')));
+  });
+
+  it('ignores blank lines', () => {
+    expect(parseOutline('Root\n\n\t- One\n\n')).toEqual(node('Root', node('One')));
+  });
+
+  it('returns null for an empty reply', () => {
+    expect(parseOutline('   \n\n')).toBeNull();
+  });
+
+  it('round-trips through renderOutline', () => {
+    const tree = node('Root', node('One', node('Deep')), node('Two'));
+    expect(parseOutline(renderOutline(tree))).toEqual(tree);
+  });
+});
+
+describe('planRewrite', () => {
+  it('updates in place so uuids and their references survive', () => {
+    const steps = planRewrite('root', node('New root', node('New one'), node('New two')), [
+      block('a', 'old one'),
+      block('b', 'old two'),
+    ]);
+    expect(steps).toEqual([
+      { op: 'update', uuid: 'root', text: 'New root' },
+      { op: 'update', uuid: 'a', text: 'New one' },
+      { op: 'update', uuid: 'b', text: 'New two' },
+    ]);
+  });
+
+  // The whole point of allowing the count to change: /Expand may split a line.
+  it('inserts when the rewrite has more lines', () => {
+    const steps = planRewrite('root', node('R', node('one'), node('two'), node('three')), [block('a', 'x')]);
+    expect(steps).toEqual([
+      { op: 'update', uuid: 'root', text: 'R' },
+      { op: 'update', uuid: 'a', text: 'one' },
+      { op: 'insert', parent: 'root', text: 'two', children: [] },
+      { op: 'insert', parent: 'root', text: 'three', children: [] },
+    ]);
+  });
+
+  // ...and /Shorten may merge two lines into one.
+  it('removes the surplus when the rewrite has fewer lines', () => {
+    const steps = planRewrite('root', node('R', node('merged')), [block('a', 'x'), block('b', 'y')]);
+    expect(steps).toEqual([
+      { op: 'update', uuid: 'root', text: 'R' },
+      { op: 'update', uuid: 'a', text: 'merged' },
+      { op: 'remove', uuid: 'b' },
+    ]);
+  });
+
+  // Deleting a linked block breaks every ((ref)) to it, permanently.
+  it('never removes a block something links to', () => {
+    const steps = planRewrite('root', node('R', node('merged')), [
+      block('a', 'x'),
+      block('b', 'y', { linked: true }),
+    ]);
+    expect(steps).toContainEqual({ op: 'keep', uuid: 'b', reason: 'linked' });
+    expect(steps.some((s) => s.op === 'remove')).toBe(false);
+  });
+
+  it('keeps a block whose descendant is linked', () => {
+    const steps = planRewrite('root', node('R'), [
+      block('a', 'x', { children: [block('a1', 'deep', { linked: true })] }),
+    ]);
+    expect(steps).toContainEqual({ op: 'keep', uuid: 'a', reason: 'linked' });
+    expect(steps.some((s) => s.op === 'remove')).toBe(false);
+  });
+
+  it('recurses into grandchildren', () => {
+    const steps = planRewrite('root', node('R', node('one', node('deep'))), [
+      block('a', 'x', { children: [block('a1', 'y')] }),
+    ]);
+    expect(steps).toEqual([
+      { op: 'update', uuid: 'root', text: 'R' },
+      { op: 'update', uuid: 'a', text: 'one' },
+      { op: 'update', uuid: 'a1', text: 'deep' },
+    ]);
+  });
+
+  it('carries the subtree of an inserted line', () => {
+    const steps = planRewrite('root', node('R', node('new', node('child'))), []);
+    expect(steps).toContainEqual({
+      op: 'insert',
+      parent: 'root',
+      text: 'new',
+      children: [node('child')],
+    });
+  });
+
+  it('rewrites only the root when there are no children either side', () => {
+    expect(planRewrite('root', node('Just this'), [])).toEqual([
+      { op: 'update', uuid: 'root', text: 'Just this' },
+    ]);
+  });
+});

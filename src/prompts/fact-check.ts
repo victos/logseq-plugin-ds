@@ -1,3 +1,4 @@
+import { SAME_LANGUAGE } from './shared';
 import { IPrompt, PromptOutputType } from './type';
 
 /**
@@ -11,7 +12,7 @@ export const FactCheck: IPrompt = {
     'You are a careful fact checker. You only flag statements that are objectively, ' +
     'verifiably false — never matters of opinion, style, taste or prediction. If you ' +
     'are not confident a statement is wrong, you stay silent about it. You never ' +
-    "invent corrections. Always reply in the same language as the user's text.",
+    `invent corrections. ${SAME_LANGUAGE}`,
   prompt: `Check the following text for factual errors:
 """
 {content}

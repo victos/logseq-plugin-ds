@@ -121,7 +121,7 @@ describe('built-in prompts', () => {
 
   it('all reply in the language of the source text', () => {
     for (const prompt of PRESETS) {
-      expect(prompt.system).toMatch(/same language/i);
+      expect(prompt.system).toMatch(/same language as the text you are given/i);
     }
   });
 

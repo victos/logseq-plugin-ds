@@ -92,9 +92,19 @@ async function runPrompt(definition: IPrompt, uuid: string) {
       }
       break;
     }
-    case PromptOutputType.replace:
-      await ops.replaceText(uuid, response, tag);
+    case PromptOutputType.replace: {
+      // Rewrites cover the block and everything under it, so the reply is an
+      // outline applied over the existing blocks rather than one string.
+      const kept = await ops.rewriteSubtree(uuid, response, tag);
+      if (kept > 0) {
+        await logseq.UI.showMsg(
+          `${kept} block(s) were left as they were: something links to them, and removing ` +
+            'them would break the reference. Delete them by hand if you want them gone.',
+          'warning',
+        );
+      }
       break;
+    }
     case PromptOutputType.append:
       await ops.appendText(uuid, response, tag);
       break;

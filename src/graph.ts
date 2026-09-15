@@ -13,6 +13,13 @@
  * `main.ts` never has to know which backend it is talking to.
  */
 import {
+  ExistingBlock,
+  OutlineNode,
+  Step,
+  parseOutline,
+  planRewrite,
+} from './outline';
+import {
   blockContent,
   blockToText,
   composeAppend,
@@ -21,6 +28,7 @@ import {
   fileText,
   propertyValue,
   readCurrentContent,
+  splitProperties,
   withTag,
 } from './block';
 
@@ -40,6 +48,27 @@ export interface BlockOps {
   setProperty(uuid: string, key: string, value: string, tag: string): Promise<void>;
   /** Adds a child block. */
   insertChild(uuid: string, text: string): Promise<void>;
+  /**
+   * Applies a rewritten outline over the block and its descendants. Existing
+   * blocks are updated in place so their uuids — and any reference to them —
+   * survive; the model is free to merge or split lines. Returns the number of
+   * blocks that had to be kept because something links to them.
+   */
+  rewriteSubtree(uuid: string, outline: string, tag: string): Promise<number>;
+}
+
+interface BlockLikeWithChildren {
+  children?: unknown;
+}
+
+/** Children come back as blocks or as `[":uuid", id]` tuples; keep the blocks. */
+function asBlocks(children: unknown): Array<Record<string, unknown>> {
+  if (!Array.isArray(children)) {
+    return [];
+  }
+  return children.filter(
+    (c): c is Record<string, unknown> => typeof c === 'object' && c !== null && !Array.isArray(c),
+  );
 }
 
 /** The slice of `logseq.Editor` the adapters use. */
@@ -47,6 +76,7 @@ export interface EditorApi {
   getBlock(uuid: string, opts?: { includeChildren?: boolean }): Promise<Record<string, unknown> | null>;
   updateBlock(uuid: string, content: string): Promise<void>;
   insertBlock(uuid: string, content: string, opts?: Record<string, unknown>): Promise<unknown>;
+  removeBlock(uuid: string): Promise<void>;
   checkEditing(): Promise<string | boolean>;
   getEditingBlockContent(): Promise<string>;
   /** Defines the property itself. On a DB graph it must exist before any block can carry it. */
@@ -87,6 +117,43 @@ export class FileGraphOps implements BlockOps {
     const latest = await this.readText(uuid);
     if (latest === null) return;
     await this.editor.updateBlock(uuid, composeProperty(latest, key, value, tag));
+  }
+
+  /**
+   * `id::` is the signal: Logseq writes it into a block only once something
+   * references it, so a block carrying one cannot be deleted without breaking
+   * that reference.
+   */
+  private toExisting(block: BlockLikeWithChildren): ExistingBlock[] {
+    const out: ExistingBlock[] = [];
+    for (const child of asBlocks(block.children)) {
+      const content = blockContent(child);
+      out.push({
+        uuid: String(child.uuid ?? ''),
+        text: splitProperties(content).body,
+        linked: /(^|\n)\s*id::\s/.test(content),
+        children: this.toExisting(child),
+      });
+    }
+    return out;
+  }
+
+  async rewriteSubtree(uuid: string, outline: string, tag: string) {
+    const rewritten = parseOutline(outline);
+    if (!rewritten) {
+      throw new Error('DeepSeek returned nothing to write back.');
+    }
+    const block = await this.editor.getBlock(uuid, { includeChildren: true });
+    if (!block) {
+      return 0;
+    }
+    const steps = planRewrite(uuid, rewritten, this.toExisting(block as BlockLikeWithChildren));
+    return applyPlan(this.editor, steps, async (target, text) => {
+      // Only the block the command was run on is tagged: tagging the rewritten
+      // children would hide them from the next command's context.
+      const current = (await readCurrentContent(this.editor, target)) ?? '';
+      await this.editor.updateBlock(target, composeReplace(current, text, target === uuid ? tag : ''));
+    });
   }
 
   async insertChild(uuid: string, text: string) {
@@ -179,8 +246,81 @@ export class DbGraphOps implements BlockOps {
     }
   }
 
+  /**
+   * A DB graph gives the plugin no way to ask what links to a block, so nothing
+   * is ever deleted here — a surplus block is kept and reported instead.
+   */
+  private toExisting(block: BlockLikeWithChildren): ExistingBlock[] {
+    return asBlocks(block.children).map((child) => ({
+      uuid: String(child.uuid ?? ''),
+      text: dbText(child),
+      linked: true,
+      children: this.toExisting(child),
+    }));
+  }
+
+  async rewriteSubtree(uuid: string, outline: string, tag: string) {
+    const rewritten = parseOutline(outline);
+    if (!rewritten) {
+      throw new Error('DeepSeek returned nothing to write back.');
+    }
+    const block = await this.editor.getBlock(uuid, { includeChildren: true });
+    if (!block) {
+      return 0;
+    }
+    const steps = planRewrite(uuid, rewritten, this.toExisting(block as BlockLikeWithChildren));
+    return applyPlan(this.editor, steps, async (target, text) => {
+      await this.editor.updateBlock(target, target === uuid ? withTag(text, tag) : text);
+    });
+  }
+
   async insertChild(uuid: string, text: string) {
     await this.editor.insertBlock(uuid, text);
+  }
+}
+
+/**
+ * Runs a rewrite plan. `write` is backend-specific because a file graph has to
+ * re-emit the block's property lines around the new text, while a DB graph
+ * stores them separately and can set the text on its own.
+ */
+async function applyPlan(
+  editor: EditorApi,
+  steps: Step[],
+  write: (uuid: string, text: string) => Promise<void>,
+): Promise<number> {
+  let kept = 0;
+  for (const step of steps) {
+    switch (step.op) {
+      case 'update':
+        await write(step.uuid, step.text);
+        break;
+      case 'insert':
+        await insertTree(editor, step.parent, step.text, step.children);
+        break;
+      case 'remove':
+        await editor.removeBlock(step.uuid);
+        break;
+      case 'keep':
+        kept += 1;
+        break;
+    }
+  }
+  return kept;
+}
+
+async function insertTree(
+  editor: EditorApi,
+  parent: string,
+  text: string,
+  children: OutlineNode[],
+): Promise<void> {
+  const inserted = (await editor.insertBlock(parent, text)) as { uuid?: string } | null;
+  if (!inserted?.uuid) {
+    return;
+  }
+  for (const child of children) {
+    await insertTree(editor, inserted.uuid, child.text, child.children);
   }
 }
 

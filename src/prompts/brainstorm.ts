@@ -1,8 +1,9 @@
+import { SAME_LANGUAGE } from './shared';
 import { IPrompt, PromptOutputType } from './type';
 
 export const Brainstorm: IPrompt = {
   name: 'Brainstorm',
-  system: `You are a creative AI assistant that generates innovative and relevant ideas. Always reply in the same language as the user's text.`,
+  system: `You are a creative AI assistant that generates innovative and relevant ideas. ${SAME_LANGUAGE}`,
   prompt: `Please generate creative ideas related to the following topic:
 """
 {content}
