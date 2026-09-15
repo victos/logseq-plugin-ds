@@ -101,7 +101,7 @@ describe('FileGraphOps', () => {
       content: saved,
       children: [{ content: 'Churn rose\nid:: kid-1' }],
     });
-    expect(await new FileGraphOps(editor).readContext('u')).toBe('Meeting notes\n\t- Churn rose');
+    expect(await new FileGraphOps(editor).readContext('u', TAG)).toBe('Meeting notes\n\t- Churn rose');
   });
 
   it('uses the editor buffer for the root while the block is being edited', async () => {
@@ -109,26 +109,26 @@ describe('FileGraphOps', () => {
       { content: saved, children: [{ content: 'Churn rose' }] },
       { editing: 'u', buffer: 'Being typed\nowner:: alice' },
     );
-    expect(await new FileGraphOps(editor).readContext('u')).toBe('Being typed\n\t- Churn rose');
+    expect(await new FileGraphOps(editor).readContext('u', TAG)).toBe('Being typed\n\t- Churn rose');
   });
 
   it('ignores the editor buffer when a different block is being edited', async () => {
     const { editor } = fakeEditor({ content: saved }, { editing: 'other', buffer: 'elsewhere' });
-    expect(await new FileGraphOps(editor).readContext('u')).toBe('Meeting notes');
+    expect(await new FileGraphOps(editor).readContext('u', TAG)).toBe('Meeting notes');
   });
 
   // Newer Logseq builds type `content` as optional and put the markdown in `title`.
   it('falls back to a string title when content is absent', async () => {
     const { editor, writes } = fakeEditor({ title: 'Notes\nid:: abc', children: [{ title: 'Kid' }] });
     const ops = new FileGraphOps(editor);
-    expect(await ops.readContext('u')).toBe('Notes\n\t- Kid');
+    expect(await ops.readContext('u', TAG)).toBe('Notes\n\t- Kid');
     await ops.replaceText('u', 'New', TAG);
     expect(writes).toEqual([`New${TAG}\nid:: abc`]);
   });
 
   it('does not mistake an AST title (old builds) for content', async () => {
     const { editor } = fakeEditor({ content: 'Real', title: ['Paragraph', ['Plain', 'Real']] });
-    expect(await new FileGraphOps(editor).readContext('u')).toBe('Real');
+    expect(await new FileGraphOps(editor).readContext('u', TAG)).toBe('Real');
   });
 
   it('inserts a child with no positional options (last child by default)', async () => {
@@ -184,14 +184,14 @@ describe('DbGraphOps', () => {
       { title: 'saved', children: [{ title: 'kid' }] },
       { editing: 'u', buffer: 'being typed' },
     );
-    expect(await new DbGraphOps(editor).readContext('u')).toBe('being typed\n\t- kid');
+    expect(await new DbGraphOps(editor).readContext('u', TAG)).toBe('being typed\n\t- kid');
   });
 
   it('treats a non-string title as empty rather than leaking it', async () => {
     const { editor, writes } = fakeEditor({ title: ['Paragraph'], content: 'compat' });
     const ops = new DbGraphOps(editor);
     expect(await ops.readText('u')).toBe('compat');
-    expect(await ops.readContext('u')).toBe('compat');
+    expect(await ops.readContext('u', TAG)).toBe('compat');
     await ops.appendText('u', 'more', TAG);
     expect(writes).toEqual([`compat more${TAG}`]);
   });
@@ -201,7 +201,7 @@ describe('DbGraphOps', () => {
       title: 'Priorities?',
       children: [{ title: 'Churn rose', children: [{ title: 'from 3% to 5%' }] }],
     });
-    expect(await new DbGraphOps(editor).readContext('u')).toBe(
+    expect(await new DbGraphOps(editor).readContext('u', TAG)).toBe(
       'Priorities?\n\t- Churn rose\n\t\t- from 3% to 5%',
     );
   });

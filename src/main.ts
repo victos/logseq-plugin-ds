@@ -35,7 +35,7 @@ async function runPrompt(definition: IPrompt, uuid: string) {
   // file graph and a DB graph does not need a plugin reload.
   const ops = await blockOps(logseq.App, logseq.Editor);
 
-  const content = stripTag(await ops.readContext(uuid), tag).trim();
+  const content = stripTag(await ops.readContext(uuid, tag), tag).trim();
   if (!content) {
     await logseq.UI.showMsg('The block is empty — nothing to send to DeepSeek.', 'warning');
     return;

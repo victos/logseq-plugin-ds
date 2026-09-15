@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
+import { dbText } from '../src/graph';
 import {
   BlockReader,
   blockToText,
   composeAppend,
   composeProperty,
   composeReplace,
+  fileText,
   isHiddenProperty,
   joinBlock,
   mergeContent,
@@ -281,5 +283,49 @@ describe('readCurrentContent', () => {
 
   it('treats a block with null content as empty', async () => {
     await expect(readCurrentContent(reader({ getBlock: async () => ({ content: null }) }), uuid)).resolves.toBe('');
+  });
+});
+
+describe('AI output is not fed back in', () => {
+  const TAG = ' #[[🤖]]';
+
+  // Reported in use: /Ask AI inserted its answer as a child, then /Tone rewrote
+  // the question *and that answer* and replaced the block with the result — which
+  // reads exactly like the command having answered the question.
+  it('skips a child the plugin wrote earlier', () => {
+    const block = {
+      content: "Greetings. What is today's date?",
+      children: [{ content: `Today's date is September 15, 2026.${TAG}` }],
+    };
+    expect(blockToText(block, fileText, TAG)).toBe("Greetings. What is today's date?");
+  });
+
+  it('skips the whole AI branch, not just its top block', () => {
+    const block = {
+      content: 'Ideas',
+      children: [
+        { content: `An idea${TAG}`, children: [{ content: 'elaboration of the idea' }] },
+        { content: 'my own note' },
+      ],
+    };
+    expect(blockToText(block, fileText, TAG)).toBe('Ideas\n\t- my own note');
+  });
+
+  it('keeps the root even after it has been rewritten in place', () => {
+    const block = { content: `Rewritten text${TAG}`, children: [{ content: 'my note' }] };
+    expect(blockToText(block, fileText, TAG)).toBe(`Rewritten text${TAG}\n\t- my note`);
+  });
+
+  it('keeps every child when tagging is switched off', () => {
+    const block = { content: 'Root', children: [{ content: `An answer${TAG}` }] };
+    expect(blockToText(block, fileText, '')).toBe(`Root\n\t- An answer${TAG}`);
+  });
+
+  it('works the same on a DB graph', () => {
+    const block = {
+      title: "Greetings. What is today's date?",
+      children: [{ title: `Today's date is September 15, 2026.${TAG}` }],
+    };
+    expect(blockToText(block, dbText, TAG)).toBe("Greetings. What is today's date?");
   });
 });

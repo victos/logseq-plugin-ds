@@ -78,6 +78,7 @@ function isBlock(value: unknown): value is BlockLike {
  * the root's text, then each child as an indented `- ` item. Metadata is
  * dropped: `textOf` decides how one block's prose is extracted, which differs
  * between file graphs (strip `key:: value` lines) and DB graphs (use `title`).
+ * Children carrying `excludeTag` are this plugin's own output and are skipped.
  */
 export function fileText(block: BlockLike): string {
   return splitProperties(blockContent(block)).body;
@@ -99,8 +100,10 @@ export function blockContent(block: BlockLike): string {
 export function blockToText(
   block: BlockLike,
   textOf: (block: BlockLike) => string = fileText,
+  excludeTag = '',
 ): string {
   const lines = [textOf(block)];
+  const marker = excludeTag.trim();
 
   const walk = (children: unknown, level: number) => {
     if (!Array.isArray(children)) {
@@ -111,6 +114,13 @@ export function blockToText(
         continue;
       }
       const body = textOf(child);
+      // A child carrying the AI tag is this plugin's own earlier output. Feeding
+      // it back would make the next command rewrite the answer instead of the
+      // question — so the whole branch is left out. The root is never skipped:
+      // it carries the tag too once it has been rewritten in place.
+      if (marker && body.includes(marker)) {
+        continue;
+      }
       if (body) {
         const indent = '\t'.repeat(level);
         const [first, ...rest] = body.split('\n');

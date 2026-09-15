@@ -84,6 +84,12 @@ A command reads the block you are in **plus everything nested under it**. So thi
 
 sends all four lines to the model, not just the question.
 
+Commands read the block **and everything nested under it**, but they skip anything the plugin
+wrote itself — child blocks carrying the `#[[🤖]]` tag. Without that, running `/Ask AI` and then
+`/Tone: Professional` on the same block would feed the answer back in, and the tone command
+would rewrite the answer instead of the question. If you clear the Tag setting, the plugin can
+no longer recognise its own output and this protection is gone.
+
 Logseq metadata (`id::`, `collapsed::`, and your own `key:: value` lines) is stripped before
 sending — the model sees your writing, not the plumbing — and is put back afterwards. If you
 run a command while still typing in the block, the plugin uses what is in the editor, not the
@@ -232,7 +238,7 @@ Still stuck? Open the Logseq developer console (`Ctrl+Shift+I`) — the full err
 ## For developers
 
 ```sh
-pnpm test    # 143 unit tests (vitest)
+pnpm test    # 150 unit tests (vitest)
 pnpm lint    # eslint over src/ and test/
 pnpm build   # tsc + vite → dist/
 ```

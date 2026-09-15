@@ -18,14 +18,18 @@ import {
   composeAppend,
   composeProperty,
   composeReplace,
+  fileText,
   propertyValue,
   readCurrentContent,
   withTag,
 } from './block';
 
 export interface BlockOps {
-  /** The block's prose plus its descendants', for sending to the model. */
-  readContext(uuid: string): Promise<string>;
+  /**
+   * The block's prose plus its descendants', for sending to the model.
+   * Descendants tagged with `tag` are the plugin's own output and are excluded.
+   */
+  readContext(uuid: string, tag: string): Promise<string>;
   /** The block's own prose as the user currently sees it, or `null` if it is gone. */
   readText(uuid: string): Promise<string | null>;
   /** Replaces the block's prose. Properties are preserved. */
@@ -54,13 +58,13 @@ export interface EditorApi {
 export class FileGraphOps implements BlockOps {
   constructor(private readonly editor: EditorApi) {}
 
-  async readContext(uuid: string) {
+  async readContext(uuid: string, tag: string) {
     const block = await this.editor.getBlock(uuid, { includeChildren: true });
     if (!block) {
       return '';
     }
     const live = await readCurrentContent(this.editor, uuid);
-    return blockToText({ ...block, content: live ?? blockContent(block) });
+    return blockToText({ ...block, content: live ?? blockContent(block) }, fileText, tag);
   }
 
   readText(uuid: string) {
@@ -106,13 +110,13 @@ export class DbGraphOps implements BlockOps {
     return dbText(block);
   }
 
-  async readContext(uuid: string) {
+  async readContext(uuid: string, tag: string) {
     const block = await this.editor.getBlock(uuid, { includeChildren: true });
     if (!block) {
       return '';
     }
     const live = await this.currentText(uuid);
-    return blockToText({ ...block, title: live ?? dbText(block) }, dbText);
+    return blockToText({ ...block, title: live ?? dbText(block) }, dbText, tag);
   }
 
   readText(uuid: string) {
