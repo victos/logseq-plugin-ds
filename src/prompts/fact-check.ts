@@ -21,6 +21,11 @@ Report only statements that are objectively false. Format each one as a single l
 ❌ <the claim, quoted as written> → ✅ <the correction> (<one short reason>)
 The ❌ and ✅ marks are required content, not list bullets — keep them.
 
+A line is only for something that is FALSE. Never write a line about a statement that is correct — not to confirm it, not to say "no correction needed", not to mention it at all. Say nothing about the parts that are right.
+Give every false claim its own line: if one sentence contains two false claims, that is two lines.
+Do not report the same false claim twice.
+Quote only the words that are false, not the whole passage around them.
+
 If the text contains no factual errors, reply with one single line saying that no
 factual errors were found — nothing else.`,
   output: PromptOutputType.insert,

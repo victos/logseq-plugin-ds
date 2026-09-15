@@ -100,3 +100,36 @@ describe('structured parser', () => {
     expect(() => structured(schema).parse('{"title": unquoted}')).toThrow(/Expected a JSON object/);
   });
 });
+
+describe('list parser drops non-findings', () => {
+  const parse = (text: string) => getOutputParser([])!.parse(text);
+
+  // Observed from Fact Check: the model fills in a row for a sentence it found
+  // nothing wrong with, repeating it verbatim as its own "correction".
+  it('drops a line whose correction repeats the claim', () => {
+    expect(
+      parse(
+        '❌ AI can do everything. → ✅ AI cannot do everything. (overgeneralisation)\n' +
+          '❌ It can help you write a note. → ✅ It can help you write a note. (This is true.)',
+      ),
+    ).toEqual(['❌ AI can do everything. → ✅ AI cannot do everything. (overgeneralisation)']);
+  });
+
+  it('ignores punctuation and case when comparing', () => {
+    expect(parse('❌ Paris is the capital → ✅ Paris is the Capital. (correct)')).toEqual([]);
+  });
+
+  it('works on Chinese punctuation too', () => {
+    expect(parse('❌ 硬盘是外部存储。 → ✅ 硬盘是外部存储（这句是对的）')).toEqual([]);
+  });
+
+  it('keeps a real correction that merely starts with similar words', () => {
+    const line = '❌ 内存属于外部存储 → ✅ 内存属于内部存储（内存由 CPU 直接访问）';
+    expect(parse(line)).toEqual([line]);
+  });
+
+  it('leaves lines that are not verdicts alone', () => {
+    expect(parse('未发现事实错误。')).toEqual(['未发现事实错误。']);
+    expect(parse('an ordinary brainstormed idea')).toEqual(['an ordinary brainstormed idea']);
+  });
+});

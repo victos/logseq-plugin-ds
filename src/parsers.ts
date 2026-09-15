@@ -13,6 +13,23 @@ export interface StructuredParser {
 export type OutputParser = ListParser | StructuredParser;
 
 const BULLET = /^\s*(?:[-*+•]|\d+[.)])\s+/;
+// `❌ claim → ✅ correction` where the correction just repeats the claim is the
+// model filling in a row for a statement it found nothing wrong with. Observed
+// from Fact Check: "❌ It can help you write a note. → ✅ It can help you write
+// a note. (This statement is true.)"
+const VERDICT = /^\s*❌\s*(.+?)\s*→\s*✅\s*(.+)$/;
+const normalise = (s: string) => s.replace(/[\s.,;:!?。，、；：！？"'“”‘’()（）]/g, '').toLowerCase();
+
+export function isNonFinding(line: string): boolean {
+  const match = VERDICT.exec(line);
+  if (!match) {
+    return false;
+  }
+  const claim = normalise(match[1]);
+  // The correction often trails a parenthesised reason; compare only its head.
+  const correction = normalise(match[2].replace(/[（(][^）)]*[）)]\s*$/, ''));
+  return claim.length > 0 && correction.startsWith(claim);
+}
 const FENCE = /```(?:json)?\s*([\s\S]*?)```/i;
 
 function listParser(): ListParser {
@@ -25,7 +42,8 @@ function listParser(): ListParser {
       return text
         .split('\n')
         .map((line) => line.replace(BULLET, '').trim())
-        .filter(Boolean);
+        .filter(Boolean)
+        .filter((line) => !isNonFinding(line));
     },
   };
 }
