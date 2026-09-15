@@ -20,15 +20,16 @@ import {
   planRewrite,
 } from './outline';
 import {
+  BlockLike,
   blockContent,
   blockToText,
   composeAppend,
   composeProperty,
   composeReplace,
   fileText,
+  hasTag,
   propertyValue,
   readCurrentContent,
-  splitProperties,
   withTag,
 } from './block';
 
@@ -124,18 +125,11 @@ export class FileGraphOps implements BlockOps {
    * references it, so a block carrying one cannot be deleted without breaking
    * that reference.
    */
-  private toExisting(block: BlockLikeWithChildren): ExistingBlock[] {
-    const out: ExistingBlock[] = [];
-    for (const child of asBlocks(block.children)) {
+  private toExisting(block: BlockLikeWithChildren, tag: string): ExistingBlock[] {
+    return existingChildren(block, fileText, tag, (child) => {
       const content = blockContent(child);
-      out.push({
-        uuid: String(child.uuid ?? ''),
-        text: splitProperties(content).body,
-        linked: /(^|\n)\s*id::\s/.test(content),
-        children: this.toExisting(child),
-      });
-    }
-    return out;
+      return /(^|\n)\s*id::\s/.test(content);
+    }, (child) => this.toExisting(child, tag));
   }
 
   async rewriteSubtree(uuid: string, outline: string, tag: string) {
@@ -147,7 +141,7 @@ export class FileGraphOps implements BlockOps {
     if (!block) {
       return 0;
     }
-    const steps = planRewrite(uuid, rewritten, this.toExisting(block as BlockLikeWithChildren));
+    const steps = planRewrite(uuid, rewritten, this.toExisting(block as BlockLikeWithChildren, tag));
     return applyPlan(this.editor, steps, async (target, text) => {
       // Only the block the command was run on is tagged: tagging the rewritten
       // children would hide them from the next command's context.
@@ -250,13 +244,8 @@ export class DbGraphOps implements BlockOps {
    * A DB graph gives the plugin no way to ask what links to a block, so nothing
    * is ever deleted here — a surplus block is kept and reported instead.
    */
-  private toExisting(block: BlockLikeWithChildren): ExistingBlock[] {
-    return asBlocks(block.children).map((child) => ({
-      uuid: String(child.uuid ?? ''),
-      text: dbText(child),
-      linked: true,
-      children: this.toExisting(child),
-    }));
+  private toExisting(block: BlockLikeWithChildren, tag: string): ExistingBlock[] {
+    return existingChildren(block, dbText, tag, () => true, (child) => this.toExisting(child, tag));
   }
 
   async rewriteSubtree(uuid: string, outline: string, tag: string) {
@@ -268,7 +257,7 @@ export class DbGraphOps implements BlockOps {
     if (!block) {
       return 0;
     }
-    const steps = planRewrite(uuid, rewritten, this.toExisting(block as BlockLikeWithChildren));
+    const steps = planRewrite(uuid, rewritten, this.toExisting(block as BlockLikeWithChildren, tag));
     return applyPlan(this.editor, steps, async (target, text) => {
       await this.editor.updateBlock(target, target === uuid ? withTag(text, tag) : text);
     });
@@ -277,6 +266,36 @@ export class DbGraphOps implements BlockOps {
   async insertChild(uuid: string, text: string) {
     await this.editor.insertBlock(uuid, text);
   }
+}
+
+/**
+ * The children as the model saw them, for reconciliation. `blockToText` leaves
+ * two kinds of child out of the outline, and they have to be left out here in
+ * the same way or every line after them lands one block off: a child tagged as
+ * the plugin's own output is skipped with its subtree and never touched, and a
+ * child with no text of its own is stood in for by its children.
+ */
+function existingChildren(
+  block: BlockLikeWithChildren,
+  textOf: (block: BlockLike) => string,
+  tag: string,
+  isLinked: (child: Record<string, unknown>) => boolean,
+  recurse: (child: Record<string, unknown>) => ExistingBlock[],
+): ExistingBlock[] {
+  const out: ExistingBlock[] = [];
+  for (const child of asBlocks(block.children)) {
+    const text = textOf(child);
+    if (hasTag(text, tag)) {
+      continue;
+    }
+    const children = recurse(child);
+    if (!text) {
+      out.push(...children);
+      continue;
+    }
+    out.push({ uuid: String(child.uuid ?? ''), text, linked: isLinked(child), children });
+  }
+  return out;
 }
 
 /**

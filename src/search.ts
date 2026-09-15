@@ -59,8 +59,10 @@ function describeError(status: number, body: string): Error {
   let detail = body.slice(0, 200);
   try {
     const parsed = JSON.parse(body) as TavilyResponse;
+    // Tavily answers `{"detail":{"error":"…"}}` (seen live); older shapes were flat.
     const d = parsed.detail ?? parsed.error;
-    detail = typeof d === 'string' ? d : JSON.stringify(d ?? detail);
+    const inner = typeof d === 'object' && d !== null ? (d as { error?: unknown }).error ?? d : d;
+    detail = typeof inner === 'string' ? inner : JSON.stringify(inner ?? detail);
   } catch {
     // keep the raw body
   }

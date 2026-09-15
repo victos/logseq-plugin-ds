@@ -101,10 +101,12 @@ describe('blockToText', () => {
     );
   });
 
-  it('still descends into a child whose own text is empty', () => {
+  // An empty block is not a point in the outline, so its children take its
+  // place at its own level — the level the reconciliation will look for them at.
+  it('still descends into a child whose own text is empty, at the same level', () => {
     expect(
       blockToText({ content: 'Root', children: [{ content: '', children: [{ content: 'Deep' }] }] }),
-    ).toBe('Root\n\t\t- Deep');
+    ).toBe('Root\n\t- Deep');
   });
 });
 

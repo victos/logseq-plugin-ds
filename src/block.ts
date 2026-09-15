@@ -131,7 +131,10 @@ export function blockToText(
           lines.push(`${indent}  ${line}`);
         }
       }
-      walk(child.children, level + 1);
+      // A child with no text of its own is not a point in the outline; its
+      // children stand in its place, at its level, so that the reconciliation
+      // after a rewrite can find them where the model saw them.
+      walk(child.children, body ? level + 1 : level);
     }
   };
 

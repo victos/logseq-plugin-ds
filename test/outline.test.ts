@@ -39,6 +39,50 @@ describe('parseOutline', () => {
     const tree = node('Root', node('One', node('Deep')), node('Two'));
     expect(parseOutline(renderOutline(tree))).toEqual(tree);
   });
+
+  it('uses the first non-blank line as the root even when it is bulleted', () => {
+    expect(parseOutline('\n- Root\n\t- One')).toEqual(node('Root', node('One')));
+  });
+
+  // A block is not one line. Before this, /Polish on a two-paragraph block came
+  // back as the first paragraph plus one new child block per remaining line.
+  it('keeps a multi-line root together, blank lines included', () => {
+    expect(parseOutline('Para one\nstill para one\n\nPara two\n\t- One')).toEqual(
+      node('Para one\nstill para one\n\nPara two', node('One')),
+    );
+  });
+
+  it('keeps the continuation lines of a child with the child', () => {
+    expect(parseOutline('Root\n\t- L1\n\t  L2\n\t- Two')).toEqual(
+      node('Root', node('L1\nL2'), node('Two')),
+    );
+  });
+
+  it('attaches a continuation to the point it is aligned with', () => {
+    expect(parseOutline('Root\n\t- A\n\t\t- B\n\t  more of A\nmore of root')).toEqual(
+      node('Root\nmore of root', node('A\nmore of A', node('B'))),
+    );
+  });
+
+  it('keeps a fenced code block as one point, bullets and indentation inside included', () => {
+    const code = 'Root\n```js\n- not a bullet\n  if (x) {\n    y();\n  }\n```\n\t- One';
+    expect(parseOutline(code)).toEqual(
+      node('Root\n```js\n- not a bullet\n  if (x) {\n    y();\n  }\n```', node('One')),
+    );
+    expect(parseOutline('Root\n\t- Code:\n\t  ```\n\t  - x\n\t  ```\n\t- Two')).toEqual(
+      node('Root', node('Code:\n```\n- x\n```'), node('Two')),
+    );
+  });
+
+  it('does not mistake inline backticks on a line for an open fence', () => {
+    expect(parseOutline('Root\n```inline```\n\t- One')).toEqual(node('Root\n```inline```', node('One')));
+  });
+
+  it('round-trips multi-line points through renderOutline', () => {
+    const tree = node('Root\nmore', node('One\n\ntwo lines', node('Deep')), node('Two'));
+    expect(renderOutline(tree)).toBe('Root\nmore\n\t- One\n\t  \n\t  two lines\n\t\t- Deep\n\t- Two');
+    expect(parseOutline(renderOutline(tree))).toEqual(tree);
+  });
 });
 
 describe('planRewrite', () => {
@@ -112,6 +156,21 @@ describe('planRewrite', () => {
       text: 'new',
       children: [node('child')],
     });
+  });
+
+  // /Expand adding a sub-point under an existing child must put it there, not
+  // under the root. (A mutation making every insert go under the root survived
+  // the suite before this test.)
+  it('inserts a surplus grandchild under its own parent', () => {
+    const steps = planRewrite('root', node('R', node('one', node('deep1'), node('deep2'))), [
+      block('a', 'x', { children: [block('a1', 'y')] }),
+    ]);
+    expect(steps).toEqual([
+      { op: 'update', uuid: 'root', text: 'R' },
+      { op: 'update', uuid: 'a', text: 'one' },
+      { op: 'update', uuid: 'a1', text: 'deep1' },
+      { op: 'insert', parent: 'a', text: 'deep2', children: [] },
+    ]);
   });
 
   it('rewrites only the root when there are no children either side', () => {

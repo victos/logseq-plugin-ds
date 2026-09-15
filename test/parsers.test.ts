@@ -128,6 +128,21 @@ describe('list parser drops non-findings', () => {
     expect(parse(line)).toEqual([line]);
   });
 
+  // A correction that begins by quoting the claim is still a correction. The
+  // earlier prefix test threw these away — a finding silently lost.
+  it('keeps a correction that opens with the claim’s own words', () => {
+    const lines = [
+      '❌ 地球是平的 → ✅ 地球是平的说法不正确，地球是球体',
+      '❌ Water boils at 100 °C → ✅ Water boils at 100 °C only at sea level (pressure)',
+    ];
+    expect(parse(lines.join('\n'))).toEqual(lines);
+  });
+
+  it('drops the claim repeated with an affirmation tacked on', () => {
+    expect(parse('❌ RAM is volatile → ✅ RAM is volatile. This is true.')).toEqual([]);
+    expect(parse('❌ 硬盘是外部存储 → ✅ 硬盘是外部存储，这句是对的')).toEqual([]);
+  });
+
   // /Verify Online's three line forms have no ✅ after the arrow, so none of
   // them can be mistaken for a non-finding — even when the source confirms the
   // claim word for word.

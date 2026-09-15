@@ -98,6 +98,16 @@ describe('search', () => {
     expect(error instanceof SearchUnavailableError).toBe(unavailable);
   });
 
+  // Seen live: Tavily wraps its message as {"detail":{"error":"…"}}.
+  it('unwraps Tavily’s nested error body into the message', async () => {
+    await expect(
+      search('q', KEY, stub(401, { detail: { error: 'Unauthorized: missing or invalid API key.' } })),
+    ).rejects.toThrow('Invalid Tavily API key (401): Unauthorized: missing or invalid API key.');
+    await expect(search('q', KEY, stub(400, { detail: { error: 'Query is missing.' } }))).rejects.toThrow(
+      'Web search failed (400): Query is missing.',
+    );
+  });
+
   it('reports a non-JSON body rather than crashing', async () => {
     await expect(search('q', KEY, stub(200, '<html>gateway</html>'))).rejects.toThrow(/non-JSON/);
   });

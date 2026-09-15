@@ -10,7 +10,10 @@ export interface OutlineNode {
   children: OutlineNode[];
 }
 
-const BULLET = /^(\s*)(?:[-*+•]\s+|\d+[.)]\s+)?(.*)$/;
+const BULLET = /^(\s*)(?:[-*+•]\s+|\d+[.)]\s+)(.*)$/;
+const INDENT = /^\s*/;
+// A fence opener or closer on its own line; "```x```" inline is neither.
+const FENCE = /^\s*(?:```|~~~)(?!.*(?:```|~~~)\s*$)/;
 
 /** Width of one indent level: a tab, or two spaces. */
 function depthOf(indent: string): number {
@@ -19,44 +22,113 @@ function depthOf(indent: string): number {
   return tabs + Math.floor(spaces / 2);
 }
 
+interface Open {
+  node: OutlineNode;
+  /** The indent the line carried, and whether a bullet followed it. */
+  indent: string;
+  bulleted: boolean;
+}
+
 /**
- * Parses an indented outline into a tree. The first line is the root; deeper
- * lines become its descendants. A line indented more than one level past its
- * parent is treated as one level deeper, so a model that over-indents still
- * produces a usable tree rather than nothing.
+ * Parses an indented outline into a tree. The first line is the root; bulleted
+ * lines deeper down become its descendants. A line indented more than one level
+ * past its parent is treated as one level deeper, so a model that over-indents
+ * still produces a usable tree rather than nothing.
+ *
+ * A line with no bullet is not a point of its own but the continuation of one:
+ * a block's second paragraph, or a line of a fenced code block. It is appended
+ * to the nearest open node at or above its indent — the one whose continuation
+ * lines it is aligned with — with blank lines between kept. Without this a
+ * multi-line block would come back as one block per line.
  */
 export function parseOutline(text: string): OutlineNode | null {
-  const rows: Array<{ depth: number; text: string }> = [];
+  let root: OutlineNode | null = null;
+  // stack[d] is the latest node at depth d; a bulleted row of depth d+1 attaches to it.
+  const stack: Open[] = [];
+  let inFence = false;
+  let fenceOwner = 0;
+  let blanks = 0;
+
+  const open = (indent: string, bulleted: boolean, body: string, depth: number) => {
+    const node: OutlineNode = { text: body.trim(), children: [] };
+    if (depth > 0) {
+      stack[depth - 1].node.children.push(node);
+    }
+    stack.length = depth;
+    stack.push({ node, indent, bulleted });
+    if (FENCE.test(body)) {
+      inFence = true;
+      fenceOwner = depth;
+    }
+    return node;
+  };
+
+  const owner = (line: string): number => {
+    // Aligned with a node's continuation lines (its indent plus the bullet's
+    // width) is the reliable signal; the depth of the indent is the fallback.
+    for (let i = stack.length - 1; i > 0; i--) {
+      const { indent, bulleted } = stack[i];
+      if (line.startsWith(bulleted ? `${indent}  ` : indent)) {
+        return i;
+      }
+    }
+    return Math.min(depthOf(INDENT.exec(line)![0]), stack.length - 1);
+  };
+
+  const append = (index: number, line: string) => {
+    const { node, indent, bulleted } = stack[index];
+    const prefix = bulleted ? `${indent}  ` : indent;
+    const stripped = line.startsWith(prefix)
+      ? line.slice(prefix.length)
+      : line.startsWith(indent) ? line.slice(indent.length) : line.trimStart();
+    node.text += `${'\n'.repeat(blanks + 1)}${stripped.trimEnd()}`;
+    if (FENCE.test(line)) {
+      inFence = !inFence;
+      fenceOwner = index;
+    }
+  };
+
   for (const line of text.split('\n')) {
     if (!line.trim()) {
+      if (root) blanks++;
       continue;
     }
-    const [, indent = '', body = ''] = BULLET.exec(line) ?? [];
-    if (body.trim()) {
-      rows.push({ depth: depthOf(indent), text: body.trim() });
+    if (inFence && root) {
+      append(fenceOwner, line);
+      blanks = 0;
+      continue;
     }
-  }
-  if (rows.length === 0) {
-    return null;
-  }
-
-  const root: OutlineNode = { text: rows[0].text, children: [] };
-  // stack[i] is the node that a row of depth i+1 attaches to.
-  const stack: OutlineNode[] = [root];
-  for (const row of rows.slice(1)) {
-    const depth = Math.min(Math.max(row.depth, 1), stack.length);
-    const node: OutlineNode = { text: row.text, children: [] };
-    stack[depth - 1].children.push(node);
-    stack.length = depth;
-    stack.push(node);
+    const bullet = BULLET.exec(line);
+    if (!root) {
+      const [, indent = '', body = ''] = bullet ?? [];
+      const text = bullet ? body : line;
+      if (!text.trim()) continue;
+      root = open(indent, Boolean(bullet), text, 0);
+    } else if (bullet) {
+      const [, indent, body] = bullet;
+      if (body.trim()) {
+        open(indent, true, body, Math.min(Math.max(depthOf(indent), 1), stack.length));
+      }
+    } else {
+      append(owner(line), line);
+    }
+    blanks = 0;
   }
   return root;
 }
 
-/** Renders a tree back to the outline form the model is asked to mirror. */
+/**
+ * Renders a tree back to the outline form the model is asked to mirror, the
+ * same form `blockToText` produces: continuation lines sit under their point,
+ * indented past the bullet.
+ */
 export function renderOutline(node: OutlineNode, level = 0): string {
-  const line = level === 0 ? node.text : `${'\t'.repeat(level)}- ${node.text}`;
-  return [line, ...node.children.map((c) => renderOutline(c, level + 1))].join('\n');
+  const [first, ...rest] = node.text.split('\n');
+  const indent = '\t'.repeat(level);
+  const lines = level === 0
+    ? [first, ...rest]
+    : [`${indent}- ${first}`, ...rest.map((line) => `${indent}  ${line}`)];
+  return [...lines, ...node.children.map((c) => renderOutline(c, level + 1))].join('\n');
 }
 
 /** An existing block, as much of it as reconciliation needs. */

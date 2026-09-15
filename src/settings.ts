@@ -21,6 +21,21 @@ export const SETTING_DEFAULTS = {
   tag: '[[🤖]]',
 } as const;
 
+/**
+ * Logseq's settings panel saves a `number` field as a string once the user has
+ * touched it (`"temperature": "0.3"` in the settings file), and a string is not
+ * a temperature the client will send. Blank or unparseable means "not set".
+ */
+export function readTemperature(value: unknown): number | undefined {
+  if (typeof value === 'number') {
+    return value;
+  }
+  if (typeof value === 'string' && value.trim()) {
+    return Number(value);
+  }
+  return undefined;
+}
+
 const settings: SettingSchemaDesc[] = [
   {
     key: 'apiKey',

@@ -115,7 +115,15 @@ export async function verifyWithSearch(
       break;
     }
 
-    history.push({ role: 'assistant', content: result.content, tool_calls: result.toolCalls });
+    // deepseek-reasoner's thinking goes back with its calls: the API documents a
+    // 400 without it, and a model continuing a tool history without its own
+    // reasoning is the one that was seen writing tool-call markup as text.
+    history.push({
+      role: 'assistant',
+      content: result.content,
+      tool_calls: result.toolCalls,
+      ...(result.reasoningContent ? { reasoning_content: result.reasoningContent } : {}),
+    });
     for (const call of result.toolCalls) {
       const reply = await serve(call, deps, queries, served);
       history.push({ role: 'tool', tool_call_id: call.id, content: reply });

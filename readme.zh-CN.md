@@ -141,6 +141,11 @@ SDK 是打包进插件的，真正决定行为的是 **Logseq 的版本**。DB �
 DB 图上插件无从查询反向引用，所以**那里一个都不删**。两种情况下多余的块都会原地保留，并弹出通知
 告诉你留了几个，由你手动处理。
 
+多行的块 —— 比如两段文字，或者一段围栏代码 —— 仍然是一个块：没有项目符号的行会被当作上一条要点的
+续行。插件唯一分不清的是写在**同一个块里**的 Markdown 列表（各占一行的 `- a`、`- b`），这种会被拆成子块。
+模型没看到的子块不参与对位：插件自己带标签的输出，以及本身没有正文的块。所以在同一个块上先跑
+`/Ask AI` 再跑 `/Polish`，答案会留在原处，不会被覆盖。
+
 由于一条命令现在可能改动多个块，撤销可能需要按多次 Ctrl+Z。
 
 ### 对着来源核查：`/Verify Online`
@@ -168,6 +173,10 @@ DB 图上插件无从查询反向引用，所以**那里一个都不删**。两�
 发给 Tavily 的只是模型自己写的搜索词 —— 从你的块里提炼出的短语 —— 块本身不会发过去。
 用 `deepseek-reasoner` 也行：这个模型得被明说一句「别再搜了」才会作答，插件会替你说。
 
+搜索这一半不只对着桩测过，也对着真实服务跑过：一次真实的 Tavily 搜索、一次被拒绝的 key（401）、
+一次非法参数（400），返回的形状都和客户端预期一致；整条循环在两个模型上都完整跑通 ——
+`deepseek-reasoner` 一直跑到强制作答的最后一轮，中间每轮都按 API 的要求把它的推理内容回传。
+
 为什么用 Tavily 而不是普通搜索 API：插件跑在浏览器沙箱里，抓不了任意网页（几乎没有网站发 CORS 头）。
 Tavily 在搜索时就把正文清洗好一并返回，省掉了单独抓取这一步。
 
@@ -186,6 +195,9 @@ Tavily 在搜索时就把正文清洗好一并返回，省掉了单独抓取这�
 前五项改完即生效，下一次执行命令时就会用新值，不需要重载插件。Web Search API Key 则不同：
 它决定 `/Verify Online` 是否注册，所以填入或清空之后要重载插件 —— 插件会弹通知提醒。
 
+Temperature 这一栏只要你改动过，Logseq 就会把它存成文本（`"0.3"` 而不是 `0.3`），插件两种都能读。
+早先的版本读不了文本形式，于是只要这一栏被碰过，所有命令就都悄悄按 DeepSeek 自己的默认值 `1.0` 在跑。
+
 默认值的变化不会影响已有安装：Logseq 会沿用已经保存的设置值。如果你是在默认值改成 `0.3` 之前
 装的插件，Temperature 仍然是 `1.0`，想用新默认值需要自己改一下。
 
@@ -193,7 +205,8 @@ Tavily 在搜索时就把正文清洗好一并返回，省掉了单独抓取这�
 
 - **`deepseek-chat`** —— 快且便宜。总结、改写、换语气这类日常任务用它就够了。
 - **`deepseek-reasoner`** —— 回答前会一步步推理，适合分析和难题，但明显更慢也更贵。
-  它的"思考过程"会被丢弃，只有最终答案写进块里。Temperature 不会发给它。
+  它的思考过程不会写进块里；跑 `/Verify Online` 时，每轮搜索之间会按 API 的要求把这些推理回传给模型，
+  答案出来后就丢弃。Temperature 不会发给它。
 
 ## 自定义命令
 
@@ -262,6 +275,7 @@ Tavily 在搜索时就把正文清洗好一并返回，省掉了单独抓取这�
 | `DeepSeek stopped at its output limit — the answer may be cut off.` | 答案已经写入，但可能被截断了。让它写短一点 |
 | `The block is empty — nothing to send to DeepSeek.` | 这个块（连同子块）去掉属性之后没有正文 |
 | `The block was deleted while DeepSeek was answering.` | 答案已被丢弃。在新的块上再执行一次命令 |
+| `DeepSeek returned nothing to insert.` | 回复里没有可用的行 —— 用 `/Fact Check` 时，它写的每一行都是在说某句话没问题，这类行会被丢掉。再跑一次，或者把块拆小 |
 | `This Logseq version cannot set block properties on a DB graph. Update Logseq, or change the prompt’s "output" away from "property".` | 只在 DB 图上出现：这个版本的 Logseq 没有 `upsertBlockProperty`。升级 Logseq，或者给这条命令换一种 `output` |
 | `Could not write the "…" property on this DB graph: …` | 只在 DB 图上出现：属性没能定义或写入，提示里会说明原因。先在 Logseq 里创建这个属性，或者把这条命令的 `output` 改成 `insert` |
 | `DeepSeek kept searching without answering (4 rounds). Try a shorter block.` | 只在 `/Verify Online` 出现：模型搜了四轮还想接着搜。把块拆小，每次少放几条说法 |
@@ -277,7 +291,7 @@ Tavily 在搜索时就把正文清洗好一并返回，省掉了单独抓取这�
 ## 开发者信息
 
 ```sh
-pnpm test    # 226 个单元测试（vitest）
+pnpm test    # 249 个单元测试（vitest）
 pnpm lint    # 对 src/ 和 test/ 跑 eslint
 pnpm build   # tsc + vite，产物在 dist/
 ```

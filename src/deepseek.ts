@@ -9,6 +9,11 @@ export interface ChatMessage {
   content: string;
   /** Present on an assistant turn that asked for a tool to be run. */
   tool_calls?: ToolCall[];
+  /**
+   * The thinking a reasoning model did on that turn. DeepSeek requires it back
+   * in every request that carries `tools`; without tools it is ignored.
+   */
+  reasoning_content?: string;
   /** Set on a `tool` message, echoing the call it answers. */
   tool_call_id?: string;
 }
@@ -49,11 +54,13 @@ export interface ChatResult {
   finishReason?: string;
   /** Tools the model wants run before it will answer. */
   toolCalls?: ToolCall[];
+  /** A reasoning model's thinking, when it sent any. Never shown; echoed back in a tool loop. */
+  reasoningContent?: string;
 }
 
 interface ChatCompletionResponse {
   choices?: {
-    message?: { content?: unknown; reasoning_content?: string; tool_calls?: unknown };
+    message?: { content?: unknown; reasoning_content?: unknown; tool_calls?: unknown };
     finish_reason?: string;
   }[];
   error?: { message?: string; type?: string; code?: string };
@@ -145,7 +152,13 @@ function extractContent(payload: ChatCompletionResponse): ChatResult {
     throw new Error('DeepSeek returned an empty response.');
   }
 
-  return { content, finishReason: choice?.finish_reason, ...(toolCalls ? { toolCalls } : {}) };
+  const reasoning = choice?.message?.reasoning_content;
+  return {
+    content,
+    finishReason: choice?.finish_reason,
+    ...(toolCalls ? { toolCalls } : {}),
+    ...(typeof reasoning === 'string' && reasoning ? { reasoningContent: reasoning } : {}),
+  };
 }
 
 function readToolCalls(value: unknown): ToolCall[] | undefined {

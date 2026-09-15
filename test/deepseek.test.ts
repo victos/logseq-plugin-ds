@@ -139,7 +139,7 @@ describe('chat', () => {
       fetch,
     });
 
-    expect(result).toEqual({ content: 'Answer', finishReason: 'stop' });
+    expect(result).toEqual({ content: 'Answer', finishReason: 'stop', reasoningContent: 'thinking…' });
     expect(calls).toHaveLength(1);
     const { url, init } = calls[0];
     expect(url).toBe('https://api.deepseek.com/v1/chat/completions');
@@ -170,6 +170,7 @@ describe('chat', () => {
     await expect(chat(MESSAGES, { ...BASE, fetch })).resolves.toEqual({
       content: 'partial',
       finishReason: 'length',
+      reasoningContent: 'thinking…',
     });
   });
 
@@ -244,6 +245,22 @@ describe('chat', () => {
     await expect(chat(MESSAGES, { ...BASE, fetch: none.fetch })).rejects.toThrow(/empty response/);
   });
 
+  // DeepSeek requires a reasoning model's thinking back in every request of a
+  // tool loop, so the client has to hand it out; a chat model sends none.
+  it('returns the reasoning of a tool turn, and nothing when there is none', async () => {
+    const thinking = fakeFetch(
+      json({ choices: [{ message: { content: null, reasoning_content: 'why', tool_calls: [CALL] }, finish_reason: 'tool_calls' }] }),
+    );
+    await expect(chat(MESSAGES, { ...BASE, fetch: thinking.fetch })).resolves.toEqual({
+      content: '',
+      finishReason: 'tool_calls',
+      toolCalls: [CALL],
+      reasoningContent: 'why',
+    });
+    const plain = fakeFetch(json({ choices: [{ message: { content: 'x', reasoning_content: '' }, finish_reason: 'stop' }] }));
+    await expect(chat(MESSAGES, { ...BASE, fetch: plain.fetch })).resolves.not.toHaveProperty('reasoningContent');
+  });
+
   it('sends tools and tool_choice in the request body', async () => {
     const tool = { type: 'function' as const, function: { name: 't', description: 'd', parameters: {} } };
     const { fetch, calls } = fakeFetch(ok('x'));
@@ -268,6 +285,24 @@ describe('chat', () => {
     ) as unknown as typeof fetch;
 
     const pending = chat(MESSAGES, { ...BASE, timeoutMs: 30_000, fetch: hanging });
+    const assertion = expect(pending).rejects.toThrow(/did not answer within 30 s/);
+    await vi.advanceTimersByTimeAsync(30_000);
+    await assertion;
+  });
+
+  // The headers can arrive and the body then stall; that is the same timeout.
+  it('explains a timeout that strikes while the body is being read', async () => {
+    vi.useFakeTimers();
+    const stalled = ((_url: string, init: RequestInit) =>
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        text: () =>
+          new Promise<string>((_resolve, reject) => {
+            init.signal!.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+          }),
+      } as Response)) as unknown as typeof fetch;
+    const pending = chat(MESSAGES, { ...BASE, timeoutMs: 30_000, fetch: stalled });
     const assertion = expect(pending).rejects.toThrow(/did not answer within 30 s/);
     await vi.advanceTimersByTimeAsync(30_000);
     await assertion;

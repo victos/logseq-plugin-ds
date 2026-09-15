@@ -8,7 +8,7 @@ import { getOutputParser, OutputParser } from './parsers';
 import { buildUserMessage, DEFAULT_SYSTEM, resolvePrompts } from './prompt';
 import { presetPrompts } from './prompts';
 import { IPrompt, PromptOutputType } from './prompts/type';
-import settings, { ISettings, SETTING_DEFAULTS } from './settings';
+import settings, { ISettings, SETTING_DEFAULTS, readTemperature } from './settings';
 
 function getSettings(): ISettings {
   return (logseq.settings ?? {}) as unknown as ISettings;
@@ -64,7 +64,7 @@ async function runPrompt(definition: IPrompt, uuid: string) {
     apiKey,
     basePath: basePath || SETTING_DEFAULTS.basePath,
     model: definition.model || model || SETTING_DEFAULTS.model,
-    temperature,
+    temperature: readTemperature(temperature),
   };
   const searchApiKey = getSettings().searchApiKey?.trim();
   if (definition.requiresSearch && !searchApiKey) {
@@ -104,6 +104,9 @@ async function runPrompt(definition: IPrompt, uuid: string) {
     }
     case PromptOutputType.insert: {
       const items = responseItems(parser, response);
+      if (items.length === 0) {
+        await logseq.UI.showMsg('DeepSeek returned nothing to insert.', 'warning');
+      }
       // The tag marks AI-written text, so it goes on the new child blocks; the
       // user's own block is not touched (this is what makes Fact Check safe).
       for (const item of items) {

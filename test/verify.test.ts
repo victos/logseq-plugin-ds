@@ -152,6 +152,20 @@ describe('verifyWithSearch', () => {
     expect(seen[1].messages[1]).toMatchObject({ role: 'assistant', content: 'Let me check.' });
   });
 
+  // DeepSeek documents a 400 when a reasoning model's thinking is not passed
+  // back in a tool loop, and a model that lost its reasoning is the one seen
+  // writing tool-call markup as text.
+  it('passes a reasoning model’s thinking back with its tool calls', async () => {
+    const { chat, seen } = scriptedChat([
+      { content: '', toolCalls: [toolCall('c1', 'q')], reasoningContent: 'let me look' },
+      { content: '', toolCalls: [toolCall('c2', 'q2')] },
+      { content: 'done' },
+    ]);
+    await verifyWithSearch(MESSAGES, BASE, { chat, search: async () => hit('u') });
+    expect(seen[2].messages[1]).toMatchObject({ role: 'assistant', reasoning_content: 'let me look' });
+    expect(seen[2].messages[3]).not.toHaveProperty('reasoning_content');
+  });
+
   // Each search costs a credit, and the answer to the same query has not changed.
   it('answers a repeated query from the earlier result without searching again', async () => {
     const { chat, seen } = scriptedChat([

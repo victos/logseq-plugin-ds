@@ -18,6 +18,9 @@ const BULLET = /^\s*(?:[-*+•]|\d+[.)])\s+/;
 // from Fact Check: "❌ It can help you write a note. → ✅ It can help you write
 // a note. (This statement is true.)"
 const VERDICT = /^\s*❌\s*(.+?)\s*→\s*✅\s*(.+)$/;
+// What may follow the repeated claim and still mean "nothing wrong here".
+const AFFIRMATION =
+  /^(?:(?:this|that|it|which|thestatement|thisstatement|thisclaim)?(?:is|s)?(?:true|correct|accurate|right|fine|ok)|(?:这|此|该|这句|此句|这句话|这一说法|该说法|说法)?(?:是|为)?(?:正确|对|准确|属实|无误|成立)的?)?$/;
 const normalise = (s: string) => s.replace(/[\s.,;:!?。，、；：！？"'“”‘’()（）]/g, '').toLowerCase();
 
 export function isNonFinding(line: string): boolean {
@@ -28,7 +31,12 @@ export function isNonFinding(line: string): boolean {
   const claim = normalise(match[1]);
   // The correction often trails a parenthesised reason; compare only its head.
   const correction = normalise(match[2].replace(/[（(][^）)]*[）)]\s*$/, ''));
-  return claim.length > 0 && correction.startsWith(claim);
+  if (claim.length === 0 || !correction.startsWith(claim)) {
+    return false;
+  }
+  // A real correction can begin with the claim's own words ("X is flat → X is
+  // flat only near the poles"); only an affirmation after them means no finding.
+  return AFFIRMATION.test(correction.slice(claim.length));
 }
 const FENCE = /```(?:json)?\s*([\s\S]*?)```/i;
 

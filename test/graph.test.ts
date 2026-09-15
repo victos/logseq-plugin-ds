@@ -436,3 +436,138 @@ describe('rewriteSubtree', () => {
     expect(writes).toEqual([]);
   });
 });
+
+describe('rewriteSubtree lines up with what the model was shown', () => {
+  function treeEditor(root: Record<string, unknown>) {
+    const writes: Array<[string, string]> = [];
+    const removed: string[] = [];
+    const inserted: Array<[string, string]> = [];
+    const editor: EditorApi = {
+      async getBlock(uuid) {
+        const find = (b: Record<string, unknown>): Record<string, unknown> | null => {
+          if (b.uuid === uuid) return b;
+          for (const c of (b.children as unknown[]) ?? []) {
+            if (typeof c !== 'object' || c === null || Array.isArray(c)) continue;
+            const hit = find(c as Record<string, unknown>);
+            if (hit) return hit;
+          }
+          return null;
+        };
+        return find(root);
+      },
+      async updateBlock(uuid, content) {
+        writes.push([uuid, content]);
+      },
+      async insertBlock(parent, content) {
+        inserted.push([parent as string, content]);
+        return { uuid: 'new' };
+      },
+      async removeBlock(uuid) {
+        removed.push(uuid);
+      },
+      async checkEditing() {
+        return false;
+      },
+      async getEditingBlockContent() {
+        return '';
+      },
+    };
+    return { editor, writes, removed, inserted };
+  }
+
+  // /Ask AI inserted an answer, then /Polish ran on the same block. The answer
+  // is hidden from the model, so the polished note came back as the first
+  // child — and was written over the answer while the note itself was removed.
+  it('file graph: leaves the plugin’s own earlier output alone', async () => {
+    const { editor, writes, removed } = treeEditor({
+      uuid: 'root',
+      content: 'Question',
+      children: [
+        { uuid: 'ai', content: `The answer.${TAG}`, children: [{ uuid: 'ai1', content: 'detail' }] },
+        { uuid: 'b', content: 'my note' },
+      ],
+    });
+    const kept = await new FileGraphOps(editor).rewriteSubtree('root', 'Q\n\t- my polished note', TAG);
+    expect(writes).toEqual([
+      ['root', `Q${TAG}`],
+      ['b', 'my polished note'],
+    ]);
+    expect(removed).toEqual([]);
+    expect(kept).toBe(0);
+  });
+
+  it('db graph: leaves the plugin’s own earlier output alone', async () => {
+    const { editor, writes, removed } = treeEditor({
+      uuid: 'root',
+      title: 'Question',
+      children: [
+        { uuid: 'ai', title: `The answer.${TAG}` },
+        { uuid: 'b', title: 'my note' },
+      ],
+    });
+    const kept = await new DbGraphOps(editor).rewriteSubtree('root', 'Q\n\t- my polished note', TAG);
+    expect(writes).toEqual([
+      ['root', `Q${TAG}`],
+      ['b', 'my polished note'],
+    ]);
+    expect(removed).toEqual([]);
+    expect(kept).toBe(0);
+  });
+
+  it('reads every child when tagging is off', async () => {
+    const { editor, writes } = treeEditor({
+      uuid: 'root',
+      content: 'Question',
+      children: [{ uuid: 'ai', content: `The answer.${TAG}` }, { uuid: 'b', content: 'my note' }],
+    });
+    await new FileGraphOps(editor).rewriteSubtree('root', 'Q\n\t- one\n\t- two', '');
+    expect(writes.map(([u]) => u)).toEqual(['root', 'ai', 'b']);
+  });
+
+  // The model saw the grandchild in the empty block's place, so the rewritten
+  // line belongs to the grandchild; the empty block is not a slot to fill.
+  it('file graph: a child with no text is stood in for by its children', async () => {
+    const { editor, writes, removed } = treeEditor({
+      uuid: 'root',
+      content: 'Root',
+      children: [
+        { uuid: 'e', content: 'collapsed:: true', children: [{ uuid: 'g', content: 'deep' }] },
+        { uuid: 'b', content: 'note' },
+      ],
+    });
+    await new FileGraphOps(editor).rewriteSubtree('root', 'R\n\t- deep polished\n\t- note polished', TAG);
+    expect(writes).toEqual([
+      ['root', `R${TAG}`],
+      ['g', 'deep polished'],
+      ['b', 'note polished'],
+    ]);
+    expect(removed).toEqual([]);
+  });
+
+  it('file graph: a multi-line child stays one block', async () => {
+    const { editor, writes, inserted } = treeEditor({
+      uuid: 'root',
+      content: 'Root',
+      children: [{ uuid: 'a', content: 'L1\nL2\nid:: 1' }],
+    });
+    await new FileGraphOps(editor).rewriteSubtree('root', 'R\n\t- L1 better\n\t  L2 better', TAG);
+    expect(writes).toEqual([
+      ['root', `R${TAG}`],
+      ['a', 'L1 better\nid:: 1\nL2 better'],
+    ]);
+    expect(inserted).toEqual([]);
+  });
+
+  // getBlock may hand back `[":uuid", id]` tuples among the children; they are
+  // not blocks and must not become a slot with uuid "undefined".
+  it('ignores uuid tuples among the children', async () => {
+    const { editor, writes, removed } = treeEditor({
+      uuid: 'root',
+      content: 'Root',
+      children: [['uuid', 'zzz'], { uuid: 'a', content: 'x' }],
+    });
+    await new FileGraphOps(editor).rewriteSubtree('root', 'R\n\t- y', TAG);
+    expect(writes.map(([u]) => u)).toEqual(['root', 'a']);
+    expect(removed).toEqual([]);
+  });
+});

@@ -165,6 +165,14 @@ cannot ask what links to a block, so **nothing is removed there at all**. Either
 surplus block stays put and a notification tells you how many were kept, for you to delete by
 hand.
 
+A block with several lines — two paragraphs, a fenced code block — stays one block: a line
+without a bullet is read as the continuation of the point above it. The one shape the plugin
+cannot tell apart is a Markdown list written *inside* a single block (`- a` and `- b` on their
+own lines); that comes back as child blocks. Children the model was never shown are left out
+when the rewrite is lined up against the existing blocks: the plugin's own tagged output, and
+blocks with no text of their own. So `/Polish` after `/Ask AI` on the same block leaves the
+answer where it is instead of writing over it.
+
 Because one command can now touch several blocks, undo may take more than one Ctrl+Z.
 
 ### Checking against sources: `/Verify Online`
@@ -197,6 +205,11 @@ learn what to fix. What reaches Tavily is the model's own search queries, short 
 from your block — not the block itself. `deepseek-reasoner` works too; it has to be told in so
 many words when to stop searching, and the plugin does that.
 
+The search half has been run against the live services, not only against stubs: a real Tavily
+search, a rejected key (401) and a rejected parameter (400) came back in the shapes the client
+expects, and the loop ran end to end on both models — `deepseek-reasoner` through to the forced
+last pass, with its reasoning handed back between rounds as the API requires.
+
 Why Tavily rather than a plain search API: a plugin runs in a browser sandbox and cannot fetch
 arbitrary pages, because almost none of them send CORS headers. Tavily returns cleaned page text
 as part of the search, so no separate fetching step is needed.
@@ -217,6 +230,10 @@ Changes to the first five apply to the next command you run; no reload needed. T
 API Key is different: it decides whether `/Verify Online` is registered at all, so setting or
 clearing it needs a reload — the plugin reminds you.
 
+Logseq saves the Temperature field as text once you have edited it (`"0.3"`, not `0.3`); the
+plugin reads it either way. Earlier builds did not, and silently ran every command at
+DeepSeek's own default of `1.0` as soon as the field had been touched.
+
 A changed default does not reach an existing install: Logseq keeps the values already stored, so
 if you set the plugin up before the default moved to `0.3`, your Temperature is still `1.0`
 until you change it.
@@ -226,8 +243,9 @@ until you change it.
 - **`deepseek-chat`** — fast and cheap. Right for almost everything: summarizing, rewriting,
   changing tone.
 - **`deepseek-reasoner`** — thinks step by step before answering. Better for analysis and hard
-  questions, but noticeably slower and more expensive. Its "thinking" is discarded; only the
-  final answer reaches your block. The Temperature setting is not sent to it.
+  questions, but noticeably slower and more expensive. Its thinking never reaches your block;
+  during a `/Verify Online` run it is handed back to the model between searches, as the API
+  requires, and dropped once the answer is in. The Temperature setting is not sent to it.
 
 ## Writing your own commands
 
@@ -297,6 +315,7 @@ Every failure shows up as a Logseq notification. The common ones:
 | `DeepSeek stopped at its output limit — the answer may be cut off.` | The answer was written but may be truncated. Ask for something shorter |
 | `The block is empty — nothing to send to DeepSeek.` | The block (and its children) had no text after removing properties |
 | `The block was deleted while DeepSeek was answering.` | The answer was discarded. Run the command again on the new block |
+| `DeepSeek returned nothing to insert.` | The reply had no usable line — with `/Fact Check`, every line it wrote was about a statement it found nothing wrong with, and those are dropped. Run it again, or on a smaller block |
 | `This Logseq version cannot set block properties on a DB graph. Update Logseq, or change the prompt’s "output" away from "property".` | DB graphs only: this Logseq build has no `upsertBlockProperty`. Update Logseq, or give the prompt another `output` |
 | `Could not write the "…" property on this DB graph: …` | DB graphs only: the property could not be defined or written; the message says why. Create the property in Logseq first, or give the prompt `output: insert` |
 | `DeepSeek kept searching without answering (4 rounds). Try a shorter block.` | `/Verify Online` only: the model wanted a fifth round of searching. Put fewer claims in the block |
@@ -312,7 +331,7 @@ Still stuck? Open the Logseq developer console (`Ctrl+Shift+I`) — the full err
 ## For developers
 
 ```sh
-pnpm test    # 226 unit tests (vitest)
+pnpm test    # 249 unit tests (vitest)
 pnpm lint    # eslint over src/ and test/
 pnpm build   # tsc + vite → dist/
 ```
