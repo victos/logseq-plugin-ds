@@ -34,5 +34,9 @@
     "id": "logseq-plugin-deepseek-assistant",
     "title": "DeepSeek Assistant",
     "icon": "./logo.svg"
-  }
+  },
+  "description": "Run DeepSeek models from Logseq slash commands: summarize, polish, rewrite, explain, brainstorm and fact-check a block without leaving your notes.",
+  "author": "victos",
+  "repo": "victos/logseq-plugin-ds",
+  "effect": true
 }
