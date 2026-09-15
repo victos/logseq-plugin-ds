@@ -119,10 +119,24 @@ On a file graph the property lines are split off before the text is sent, and re
 untouched afterwards. On a DB graph the text can be replaced without touching properties at
 all, so nothing has to be reassembled.
 
-**The DB path is unit tested and has been checked against a real DB graph only through Logseq's
-CLI — the plugin itself has never run inside Logseq on one.** It is written against the
-`@logseq/libs` 0.3.4 type definitions and exercised against a fake editor, which is why
-`marketplace/manifest.json` still declares `supportsDB: false`.
+**The DB path has been exercised in a real DB graph, in Logseq, by hand.** `/Ask AI`,
+`/Tone:`, `/Summarize` and `/Shorten` were each run on a block with children; the property was
+created and set, the subtree was rewritten, and a `((reference))` to one of the rewritten
+children still resolved afterwards. `marketplace/manifest.json` declares `supportsDB: true` on
+that basis.
+
+Two details were confirmed separately through Logseq's CLI rather than inferred from type
+definitions:
+
+- A `#[[🤖]]` tag written into a block's text stays in the text: the DB records a reference to
+  the `🤖` page but does not move the tag into a separate tag field, and reads the title back
+  with the tag spelled out. So the tag behaviour described above — including skipping tagged
+  children — holds on both backends.
+- A DB graph refuses to put a property on a block until that property exists
+  (`Property :summarize doesn't exist yet`), and then stores it under a namespaced ident of
+  its own, not under the name given. `/Summarize` therefore defines the property before
+  writing it, and if the write is still refused you get a message saying so and suggesting
+  `output: insert` instead.
 
 The SDK is bundled with the plugin; what matters is the Logseq build. The DB path needs a build
 that exposes `checkCurrentIsDbGraph` and `upsertBlockProperty`. On older builds, where
@@ -130,25 +144,11 @@ that exposes `checkCurrentIsDbGraph` and `upsertBlockProperty`. On older builds,
 since those builds only have file graphs. On newer builds that hand back a file-graph block with
 the markdown in `title` and no `content`, the file-graph path reads `title` instead.
 
-Two things were checked against a real DB graph (Logseq desktop nightly, via its CLI) rather
-than inferred from type definitions:
-
-- A `#[[🤖]]` tag written into a block's text stays in the text: the DB records a reference to
-  the `🤖` page but does not move the tag into a separate tag field, and reads the title back
-  with the tag spelled out. So the tag behaviour described above — including skipping tagged
-  children — holds on both backends, as far as the CLI can show.
-- A DB graph refuses to put a property on a block until that property exists
-  (`Property :summarize doesn't exist yet`), and then stores it under a namespaced ident of
-  its own, not under the name given. `/Summarize` therefore defines the property before
-  writing it, and if the write is still refused you get a message saying so and suggesting
-  `output: insert` instead.
-
-Still unverified, because they need the plugin running inside Logseq rather than the CLI:
-whether `getBlock({includeChildren: true})` nests children the same way on a DB graph, whether
-`insertBlock` appends as the last child (`/Brainstorm` depends on the order), whether a block
-saved from the DB editor still reads back with the tag as text, how `updateBlock` behaves on a
-block that is being edited, and whether the bundled `@logseq/libs` 0.3.x client boots correctly
-inside an older file-graph Logseq build.
+**The file-graph path is the one that has never run inside Logseq.** It is covered by unit
+tests and it is what upstream's code did, but the machine this was developed on has only DB
+graphs, so nothing exercised it end to end — including whether the bundled `@logseq/libs` 0.3.x
+client boots at all inside an older, file-graph-only Logseq build. If you use a file graph,
+treat the first few runs as a trial and keep an eye on your block properties.
 
 ### Rewriting a block that has children
 

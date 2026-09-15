@@ -16,6 +16,8 @@ Before submitting, the marketplace requires:
 `effect: true` matches what comparable plugins set; it governs whether the plugin
 sandbox shares the host origin, which is what lets it call the DeepSeek API.
 
-`supportsDB` is deliberately **false**. The DB code path exists and is unit
-tested, but it has never run against a real DB graph — set this to `true` only
-after verifying the commands there by hand.
+`supportsDB` is **true**: the commands were run by hand in a real DB graph in
+Logseq — `/Ask AI`, `/Tone:`, `/Summarize` and `/Shorten` on a block with
+children, with a `((reference))` to a rewritten child still resolving
+afterwards. `supportsDBOnly` is not set, since the file-graph path is still
+there; note that it is the path that has *not* been exercised end to end.

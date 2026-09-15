@@ -5,5 +5,5 @@
   "repo": "victos/logseq-plugin-ds",
   "icon": "./logo.svg",
   "effect": true,
-  "supportsDB": false
+  "supportsDB": true
 }

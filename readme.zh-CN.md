@@ -108,29 +108,28 @@ Logseq 的两种存储后端对「块」的建模完全不同，插件会自动�
 文件图上，属性行会在发送前被剥离、写回时原样恢复；DB 图上正文和属性本来就是分开的，替换文本
 根本碰不到属性，也就无需重组。
 
-**DB 那条路径有单元测试，也只通过 Logseq 的 CLI 对着真实 DB 图验证过 —— 插件本身从未在 DB 图里
-真正跑过。** 它是照着 `@logseq/libs` 0.3.4 的类型定义写的，测试时对接的是一个假的编辑器对象，
-这也是 `marketplace/manifest.json` 里 `supportsDB` 仍为 `false` 的原因。
+**DB 路径已经在真实 DB 图里、在 Logseq 中手工跑通。** `/Ask AI`、`/Tone:`、`/Summarize`、
+`/Shorten` 各自在一个带子块的块上跑过：属性被成功创建并写入，子树被整体改写，而指向某个被改写
+子块的 `((引用))` 在之后依然有效。`marketplace/manifest.json` 据此声明 `supportsDB: true`。
 
-SDK 是随插件一起打包的，真正起决定作用的是 Logseq 本身的版本。DB 路径要求 Logseq 提供
-`checkCurrentIsDbGraph` 和 `upsertBlockProperty` 这两个 API。老版本没有 `checkCurrentIsDbGraph`，
-插件就走文件图路径 —— 这是对的，因为那些版本本来就只有文件图。新版本如果返回的文件图块把 markdown
-放在 `title` 里、没有 `content`，文件图路径会改读 `title`。
-
-有两点是**对着真实 DB 图实测**的（Logseq desktop nightly，走它自带的 CLI），而不是从类型定义推断的：
+另有两个细节是通过 Logseq 自带 CLI 实测确认的，不是从类型定义推断的：
 
 - 写进块正文的 `#[[🤖]]` 标签**会留在正文里**：DB 会记录一条指向 `🤖` 页面的引用，但不会把标签
-  抽成独立的 tag 字段，读回来的标题里标签仍按原样拼写。所以上面描述的标签行为 —— 包括跳过带
-  标签的子块 —— 在 CLI 能验证的范围内，两种后端上都成立。
+  移到独立的 tag 字段，读回来时标签原样还在。所以上面描述的标签行为 —— 包括跳过带标签的子块 ——
+  在两种后端上都成立。
 - **DB 图不允许给块加一个尚不存在的属性**（报错原文 `Property :summarize doesn't exist yet`），
   而且属性最终存储用的是它自己生成的带命名空间 ident，不是你传进去的名字。所以 `/Summarize`
   会先定义属性再写入；万一仍被拒绝，你会看到明确提示，并建议改用 `output: insert`。
 
-仍未验证的部分 —— 这些需要插件真正跑在 Logseq 里，CLI 验不了：DB 图上
-`getBlock({includeChildren: true})` 的子块嵌套结构是否一致、`insertBlock` 是否追加为最后一个
-子块（`/Brainstorm` 的顺序依赖它）、在 DB 编辑器里保存过的块读回来时标签是否仍是文本、
-对正在编辑中的块调用 `updateBlock` 是什么效果，以及打包进来的 `@logseq/libs` 0.3.x 客户端能否
-在更老的文件图版 Logseq 里正常启动。
+SDK 是打包进插件的，真正决定行为的是 **Logseq 的版本**。DB 路径需要宿主提供
+`checkCurrentIsDbGraph` 和 `upsertBlockProperty`。老版本没有 `checkCurrentIsDbGraph`，插件会走
+文件图路径 —— 这是对的，因为那些版本本来就只有文件图。新版本如果把文件图的块也放进 `title`
+而不给 `content`，文件图路径会改读 `title`。
+
+**反倒是文件图路径从未在 Logseq 里真正跑过。** 它有单元测试覆盖，逻辑也沿袭自上游，但开发这台
+机器上只有 DB 图，没有任何端到端验证 —— 包括打包进来的 `@logseq/libs` 0.3.x 客户端能否在更老的、
+只支持文件图的 Logseq 里正常启动。如果你用的是文件图，前几次请当作试用，留意一下块属性有没有被
+改坏。
 
 ### 改写带子块的块
 
