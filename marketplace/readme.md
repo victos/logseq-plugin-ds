@@ -10,8 +10,9 @@ Before submitting, the marketplace requires:
 - a tagged GitHub release whose assets include the built zip — `release.config.js`
   already attaches `logseq-plugin-deepseek-assistant-<version>.zip`, over and above
   GitHub's automatic "Source code (zip)";
-- a readme that explains the plugin and shows **at least one screenshot or GIF**.
-  The readme has none yet, and it cannot be produced without a running Logseq.
+- a readme that explains the plugin and shows **at least one screenshot or GIF**:
+  `docs/demo.gif`, `docs/menu.png` and `docs/fact_check.png`, all recorded in a
+  real DB graph.
 
 `effect: true` matches what comparable plugins set; it governs whether the plugin
 sandbox shares the host origin, which is what lets it call the DeepSeek API.

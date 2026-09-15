@@ -2,15 +2,11 @@
 
 Call DeepSeek from a slash command, right inside a Logseq block. **English** | [中文](./readme.zh-CN.md)
 
-Type `/Summarize` in a block and DeepSeek summarizes it. Type `/Shorten` and it rewrites the
-block in place. No window switching, no copy-paste — the answer lands in your notes.
+Type `/Polish` in a block and DeepSeek rewrites it — the block **and the points nested under
+it**, each one updated in place. No window switching, no copy-paste; the answer lands in your
+notes.
 
-```
-- Q3 revenue grew 12% but churn also rose.        ← type /Summarize here
-    ↓
-- Q3 revenue grew 12% but churn also rose. #[[🤖]]
-  summarize:: Growth offset by churn.            ← added as a property
-```
+![Polishing a block and its sub-points with one command](./docs/demo.gif)
 
 A DeepSeek port of [ahonn/logseq-plugin-ai-assistant](https://github.com/ahonn/logseq-plugin-ai-assistant) (MIT).
 
@@ -38,6 +34,8 @@ Then `Plugins → Load unpacked plugin` and pick this folder.
 
 Twelve commands come built in. Type `/` in a block and start typing the name.
 
+![The plugin's commands in the slash menu](./docs/menu.png)
+
 | Command | What it does | Where the answer goes |
 | --- | --- | --- |
 | `/Ask AI` | Answers the question in the block | New child block |
@@ -51,6 +49,8 @@ Twelve commands come built in. Type `/` in a block and start typing the name.
 | `/Tone: Friendly` `/Tone: Confident` `/Tone: Casual` `/Tone: Professional` | Rewrites in that tone | Replaces the block text |
 
 Type `/tone` to see the four tone commands together.
+
+![Fact Check listing what it believes is false, leaving the block itself alone](./docs/fact_check.png)
 
 **`/Fact Check` never rewrites your text.** It judges correctness from the model's own
 knowledge — which can be wrong, and confidently so — so instead of "correcting" the block it

@@ -20,7 +20,7 @@ module.exports = {
       "@semantic-release/exec",
       {
         prepareCmd:
-          "zip -qq -r logseq-plugin-deepseek-assistant-${nextRelease.version}.zip dist readme.md readme.zh-CN.md logo.svg LICENSE package.json",
+          "zip -qq -r logseq-plugin-deepseek-assistant-${nextRelease.version}.zip dist readme.md readme.zh-CN.md docs logo.svg LICENSE package.json",
       },
     ],
     [

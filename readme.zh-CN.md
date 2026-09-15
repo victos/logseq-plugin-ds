@@ -2,15 +2,10 @@
 
 在 Logseq 的块里敲一条斜杠命令，就能调用 DeepSeek。 [English](./readme.md) | **中文**
 
-在任意块里输入 `/Summarize`，DeepSeek 就会把这个块总结好；输入 `/Shorten`，它会就地改写。
-不用切窗口，不用复制粘贴，答案直接落进你的笔记。
+在任意块里输入 `/Polish`，DeepSeek 就会把它改写 —— **连同它下面嵌套的所有要点**，逐个就地更新。
+不用切窗口，不用复制粘贴，结果直接落进你的笔记。
 
-```
-- 三季度营收增长 12%，但流失率也上升了。            ← 在这里输入 /Summarize
-    ↓
-- 三季度营收增长 12%，但流失率也上升了。 #[[🤖]]
-  summarize:: 增长被流失抵消。                      ← 作为属性写入
-```
+![一条命令改写整块及其子块](./docs/demo.gif)
 
 本项目是 [ahonn/logseq-plugin-ai-assistant](https://github.com/ahonn/logseq-plugin-ai-assistant)（MIT）的 DeepSeek 移植版。
 
@@ -36,6 +31,8 @@ pnpm install && pnpm build
 ## 内置命令
 
 插件自带十二条命令。在块里输入 `/` 然后打名字就能找到。
+![斜杠菜单里的插件命令](./docs/menu.png)
+
 
 | 命令 | 作用 | 结果写到哪 |
 | --- | --- | --- |
@@ -50,6 +47,8 @@ pnpm install && pnpm build
 | `/Tone: Friendly` `/Tone: Confident` `/Tone: Casual` `/Tone: Professional` | 改成对应语气 | 替换块内容 |
 
 输入 `/tone` 就能把四条语气命令一起筛出来。
+
+![Fact Check 把它认为有误的地方列成子块，原文一字不动](./docs/fact_check.png)
 
 **`/Fact Check` 从不改写你的原文。** 它靠模型自己的知识判断对错，而这个判断可能是错的，
 而且错得很自信。所以它不会去"纠正"你的块，而是把每一条它认为有误的说法单独列成一个子块，
