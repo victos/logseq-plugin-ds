@@ -32,7 +32,7 @@ Then `Plugins → Load unpacked plugin` and pick this folder.
 
 ## The commands
 
-Twelve commands come built in. Type `/` in a block and start typing the name.
+Twelve commands come built in, plus one that needs a search key. Type `/` in a block and start typing the name.
 
 ![The plugin's commands in the slash menu](./docs/menu.png)
 
@@ -45,6 +45,7 @@ Twelve commands come built in. Type `/` in a block and start typing the name.
 | `/Expand` | Fills it out with more detail | Replaces the block text |
 | `/Explain` | Explains the text or code | New child block |
 | `/Fact Check` | Flags statements it believes are objectively false | One child block per error |
+| `/Verify Online` | Searches the web and cites a source for each verdict — **only when a search key is set** | One child block per claim |
 | `/Brainstorm` | Suggests related ideas | One child block per idea |
 | `/Tone: Friendly` `/Tone: Confident` `/Tone: Casual` `/Tone: Professional` | Rewrites in that tone | Replaces the block text |
 
@@ -166,6 +167,33 @@ hand.
 
 Because one command can now touch several blocks, undo may take more than one Ctrl+Z.
 
+### Checking against sources: `/Verify Online`
+
+`/Fact Check` judges from the model's own knowledge, which has a cutoff. `/Verify Online`
+searches instead, and every verdict it writes carries the URL it rests on:
+
+```
+- DeepSeek's strongest model is deepseek-v2, with a 32K context.    ← /Verify Online
+    ↓
+  - ❌ DeepSeek's strongest model is deepseek-v2 → V3, R1 and later
+      are newer and stronger — https://api-docs.deepseek.com/updates
+  - ✅ <a claim that held up> — <source url>
+  - ❓ <a claim no source settled>
+```
+
+It is **off unless you set a Web Search API Key** in the settings — get one from
+[tavily.com](https://tavily.com), whose free tier is 1,000 searches a month. Without a key the
+command is not registered at all and nothing else changes; after setting one, reload the plugin.
+
+It costs what you would expect: the model searches two to four times before answering, so a run
+takes 7-12 seconds against roughly one for `/Fact Check`. Use `/Fact Check` for everyday
+sanity-checking and this when the answer has to be attributable — versions, dates, numbers,
+anything recent.
+
+Why Tavily rather than a plain search API: a plugin runs in a browser sandbox and cannot fetch
+arbitrary pages, because almost none of them send CORS headers. Tavily returns cleaned page text
+as part of the search, so no separate fetching step is needed.
+
 ## Settings
 
 | Setting | Default | What it is for |
@@ -175,6 +203,7 @@ Because one command can now touch several blocks, undo may take more than one Ct
 | **Model** | `deepseek-chat` | See below. A custom prompt can override it per command |
 | **Temperature** | `0.3` | How closely the answer sticks to your text. Low is right for rewriting; raise it towards `1.3` for Brainstorm or Ask AI |
 | **Tag** | `[[🤖]]` | Added to AI output. Write it without the `#`; leave empty to turn tagging off |
+| **Web Search API Key** | *(empty)* | Optional. A [Tavily](https://tavily.com) key; enables `/Verify Online` |
 | **Custom Prompts** | off | Your own commands — see below |
 
 Changes to the first five apply to the next command you run; no reload needed.
@@ -269,7 +298,7 @@ Still stuck? Open the Logseq developer console (`Ctrl+Shift+I`) — the full err
 ## For developers
 
 ```sh
-pnpm test    # 178 unit tests (vitest)
+pnpm test    # 207 unit tests (vitest)
 pnpm lint    # eslint over src/ and test/
 pnpm build   # tsc + vite → dist/
 ```
@@ -283,12 +312,14 @@ Source layout:
 | `src/block.ts` | Block content — property splitting, tags, editor/DB merge |
 | `src/prompt.ts` | Prompt assembly and custom-prompt validation |
 | `src/settings.ts` | The settings schema and its defaults |
+| `src/search.ts` | The web search client (Tavily) |
+| `src/verify.ts` | The search loop: offer the tool, serve the calls, then answer |
 | `src/deepseek.ts` | The API client |
 | `src/parsers.ts` | Turning a reply into a list or named fields |
 | `src/prompts/` | The built-in prompts, one per file; `index.ts` sets the order |
 
 `@logseq/libs` is the only runtime dependency; the client is a single `fetch` call. Bundle is
-about 43 kB gzipped.
+about 46 kB gzipped.
 
 ### What changed from the original
 

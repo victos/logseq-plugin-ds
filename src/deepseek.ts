@@ -1,6 +1,26 @@
+export interface ToolCall {
+  id: string;
+  type: 'function';
+  function: { name: string; arguments: string };
+}
+
 export interface ChatMessage {
-  role: 'system' | 'user' | 'assistant';
+  role: 'system' | 'user' | 'assistant' | 'tool';
   content: string;
+  /** Present on an assistant turn that asked for a tool to be run. */
+  tool_calls?: ToolCall[];
+  /** Set on a `tool` message, echoing the call it answers. */
+  tool_call_id?: string;
+}
+
+/** A tool offered to the model, in the OpenAI-compatible shape DeepSeek accepts. */
+export interface ToolSpec {
+  type: 'function';
+  function: {
+    name: string;
+    description: string;
+    parameters: Record<string, unknown>;
+  };
 }
 
 export interface ChatOptions {
@@ -13,17 +33,21 @@ export interface ChatOptions {
   signal?: AbortSignal;
   /** Injection point for tests; defaults to the global `fetch`. */
   fetch?: typeof fetch;
+  /** Tools the model may ask to have run. Omitted entirely when empty. */
+  tools?: ToolSpec[];
 }
 
 export interface ChatResult {
   content: string;
   /** `stop` normally; `length` when the answer was cut off at the output limit. */
   finishReason?: string;
+  /** Tools the model wants run before it will answer. */
+  toolCalls?: ToolCall[];
 }
 
 interface ChatCompletionResponse {
   choices?: {
-    message?: { content?: unknown; reasoning_content?: string };
+    message?: { content?: unknown; reasoning_content?: string; tool_calls?: unknown };
     finish_reason?: string;
   }[];
   error?: { message?: string; type?: string; code?: string };
@@ -80,10 +104,15 @@ export function buildRequestBody(
   messages: ChatMessage[],
   model: string,
   temperature: number | undefined,
+  tools?: ToolSpec[],
 ): Record<string, unknown> {
   const body: Record<string, unknown> = { model, messages, stream: false };
   if (!isReasoner(model) && typeof temperature === 'number' && Number.isFinite(temperature)) {
     body.temperature = temperature;
+  }
+  // An empty array is not the same as no tools: some endpoints reject it.
+  if (tools && tools.length > 0) {
+    body.tools = tools;
   }
   return body;
 }
@@ -96,14 +125,32 @@ function extractContent(payload: ChatCompletionResponse): ChatResult {
   const choice = payload.choices?.[0];
   const raw = choice?.message?.content;
   const content = typeof raw === 'string' ? raw.trim() : '';
-  if (!content) {
+  const toolCalls = readToolCalls(choice?.message?.tool_calls);
+
+  // A turn that only asks for tools carries no text, and that is not an error.
+  if (!content && !toolCalls) {
     if (choice?.finish_reason === 'length') {
       throw new Error('DeepSeek hit the output length limit before producing an answer.');
     }
     throw new Error('DeepSeek returned an empty response.');
   }
 
-  return { content, finishReason: choice?.finish_reason };
+  return { content, finishReason: choice?.finish_reason, ...(toolCalls ? { toolCalls } : {}) };
+}
+
+function readToolCalls(value: unknown): ToolCall[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+  const calls = value.filter(
+    (c): c is ToolCall =>
+      typeof c === 'object' &&
+      c !== null &&
+      typeof (c as ToolCall).id === 'string' &&
+      typeof (c as ToolCall).function?.name === 'string' &&
+      typeof (c as ToolCall).function?.arguments === 'string',
+  );
+  return calls.length > 0 ? calls : undefined;
 }
 
 export async function chat(messages: ChatMessage[], options: ChatOptions): Promise<ChatResult> {
@@ -159,7 +206,7 @@ export async function chat(messages: ChatMessage[], options: ChatOptions): Promi
           'Content-Type': 'application/json',
           Authorization: `Bearer ${apiKey}`,
         },
-        body: JSON.stringify(buildRequestBody(messages, model, options.temperature)),
+        body: JSON.stringify(buildRequestBody(messages, model, options.temperature, options.tools)),
         signal: controller.signal,
       });
     } catch (error) {

@@ -91,8 +91,13 @@ export function validateCustomPrompt(
 export function resolvePrompts(
   presets: IPrompt[],
   custom: CustomPromptsSetting | undefined | null,
+  searchAvailable = false,
 ): ResolvedPrompts {
-  const byName = new Map(presets.map((prompt) => [prompt.name, prompt]));
+  // A command that needs web search is left out entirely rather than
+  // registered and made to fail: an unusable entry in the slash menu is worse
+  // than no entry.
+  const usable = presets.filter((prompt) => !prompt.requiresSearch || searchAvailable);
+  const byName = new Map(usable.map((prompt) => [prompt.name, prompt]));
   const problems: string[] = [];
 
   if (custom?.enable && Array.isArray(custom.prompts)) {

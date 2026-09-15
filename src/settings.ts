@@ -6,6 +6,7 @@ export interface ISettings {
   basePath: string;
   model: string;
   temperature: number;
+  searchApiKey: string;
   tag: string;
   customPrompts: {
     enable: boolean;
@@ -57,6 +58,16 @@ const settings: SettingSchemaDesc[] = [
       'it towards 1.3 if you want Brainstorm or Ask AI to range wider. Ignored by ' +
       'deepseek-reasoner.',
     default: SETTING_DEFAULTS.temperature,
+  },
+  {
+    key: 'searchApiKey',
+    type: 'string',
+    title: 'Web Search API Key (optional)',
+    description:
+      'A Tavily API key (https://tavily.com), which enables the "/Verify Online" command. ' +
+      'That command searches the web and cites a source for every verdict; without a key it ' +
+      'is not registered at all and nothing else changes. Reload the plugin after setting it.',
+    default: '',
   },
   {
     key: 'tag',

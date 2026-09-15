@@ -30,7 +30,7 @@ pnpm install && pnpm build
 
 ## 内置命令
 
-插件自带十二条命令。在块里输入 `/` 然后打名字就能找到。
+插件自带十二条命令，另有一条需要搜索 key 才启用。在块里输入 `/` 然后打名字就能找到。
 ![斜杠菜单里的插件命令](./docs/menu.png)
 
 
@@ -43,6 +43,7 @@ pnpm install && pnpm build
 | `/Expand` | 扩写，补充细节 | 替换块内容 |
 | `/Explain` | 解释这段文字或代码 | 新建子块 |
 | `/Fact Check` | 指出它认为客观上不成立的说法 | 每处错误一个子块 |
+| `/Verify Online` | 联网搜索，每条判断都附来源 —— **只在配置了搜索 key 时出现** | 每条待核查说法一个子块 |
 | `/Brainstorm` | 围绕主题发散想法 | 每条想法一个子块 |
 | `/Tone: Friendly` `/Tone: Confident` `/Tone: Casual` `/Tone: Professional` | 改成对应语气 | 替换块内容 |
 
@@ -142,6 +143,29 @@ DB 图上插件无从查询反向引用，所以**那里一个都不删**。两�
 
 由于一条命令现在可能改动多个块，撤销可能需要按多次 Ctrl+Z。
 
+### 对着来源核查：`/Verify Online`
+
+`/Fact Check` 靠模型自己的知识判断，而那有知识截止日期。`/Verify Online` 改为**先搜再判**，
+而且每条结论都带上它依据的链接：
+
+```
+- DeepSeek 最强的模型是 deepseek-v2，上下文 32K。        ← /Verify Online
+    ↓
+  - ❌ DeepSeek 最强的模型是 deepseek-v2 → 之后已发布 V3、R1
+      等更强模型 — https://api-docs.deepseek.com/zh-cn/updates
+  - ✅ <经核实成立的说法> — <来源链接>
+  - ❓ <没找到可靠来源的说法>
+```
+
+**不配置搜索 key 就不启用。** 到 [tavily.com](https://tavily.com) 申请（免费额度每月 1000 次），
+填进设置里的 Web Search API Key。没有 key 时这条命令**根本不会注册**，其余一切不变；填好后重载插件。
+
+代价也很直接：模型回答前会搜 2~4 次，一次运行约 7~12 秒，而 `/Fact Check` 大约 1 秒。
+日常顺手一查用 `/Fact Check`，需要**可追溯来源**时用这条 —— 版本号、日期、数字、近期发生的事。
+
+为什么用 Tavily 而不是普通搜索 API：插件跑在浏览器沙箱里，抓不了任意网页（几乎没有网站发 CORS 头）。
+Tavily 在搜索时就把正文清洗好一并返回，省掉了单独抓取这一步。
+
 ## 设置项
 
 | 设置 | 默认值 | 说明 |
@@ -151,6 +175,7 @@ DB 图上插件无从查询反向引用，所以**那里一个都不删**。两�
 | **Model** | `deepseek-chat` | 见下文。自定义命令可以单独覆盖 |
 | **Temperature** | `0.3` | 回答贴合原文的程度。改写类任务宜低；想让 Brainstorm 或 Ask AI 放开一些可以调到 `1.3` 左右 |
 | **Tag** | `[[🤖]]` | 给 AI 产出打的标签。填的时候**不要**带 `#`；留空则不打标签 |
+| **Web Search API Key** | *(空)* | 可选。[Tavily](https://tavily.com) 的 key，用于启用 `/Verify Online` |
 | **Custom Prompts** | 关闭 | 自定义命令，见下文 |
 
 前五项改完即生效，下一次执行命令时就会用新值，不需要重载插件。
@@ -241,7 +266,7 @@ DB 图上插件无从查询反向引用，所以**那里一个都不删**。两�
 ## 开发者信息
 
 ```sh
-pnpm test    # 178 个单元测试（vitest）
+pnpm test    # 207 个单元测试（vitest）
 pnpm lint    # 对 src/ 和 test/ 跑 eslint
 pnpm build   # tsc + vite，产物在 dist/
 ```
@@ -255,11 +280,13 @@ pnpm build   # tsc + vite，产物在 dist/
 | `src/block.ts` | 块内容处理 —— 属性拆分、标签、编辑器与数据库内容合并 |
 | `src/prompt.ts` | 拼装 prompt、校验自定义命令 |
 | `src/settings.ts` | 设置项的 schema 和默认值 |
+| `src/search.ts` | 联网搜索客户端（Tavily） |
+| `src/verify.ts` | 搜索循环：提供工具、处理调用、最后作答 |
 | `src/deepseek.ts` | API 客户端 |
 | `src/parsers.ts` | 把回复解析成列表或结构化字段 |
 | `src/prompts/` | 内置 prompt，一个文件一条；`index.ts` 决定顺序 |
 
-运行时依赖只有 `@logseq/libs`，客户端就是一次 `fetch`。产物 gzip 后约 43 kB。
+运行时依赖只有 `@logseq/libs`，客户端就是一次 `fetch`。产物 gzip 后约 46 kB。
 
 ### 相比原项目改了什么
 

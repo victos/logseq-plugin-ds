@@ -9,6 +9,8 @@ export interface IPrompt {
    */
   format?: unknown[] | Record<string, string>;
   model?: string;
+  /** Needs a search API key; the command is not registered without one. */
+  requiresSearch?: boolean;
 }
 
 export enum PromptOutputType {

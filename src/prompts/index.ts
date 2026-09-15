@@ -7,6 +7,7 @@ import { Polish } from './polish';
 import { Shorten } from './shorten';
 import { Summarize } from './summarize';
 import { ToneCasual } from './tone-casual';
+import { VerifyOnline } from './verify-online';
 import { ToneConfident } from './tone-confident';
 import { ToneFriendly } from './tone-friendly';
 import { ToneProfessional } from './tone-professional';
@@ -14,7 +15,7 @@ import { IPrompt } from './type';
 
 export {
   AskAI, Brainstorm, Expand, Explain, FactCheck, Polish, Shorten, Summarize,
-  ToneCasual, ToneConfident, ToneFriendly, ToneProfessional,
+  ToneCasual, ToneConfident, ToneFriendly, ToneProfessional, VerifyOnline,
 };
 
 /**
@@ -30,6 +31,7 @@ export const presetPrompts: IPrompt[] = [
   Expand,
   Explain,
   FactCheck,
+  VerifyOnline,
   Brainstorm,
   ToneFriendly,
   ToneConfident,

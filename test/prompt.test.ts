@@ -69,11 +69,13 @@ describe('validateCustomPrompt', () => {
 
 describe('resolvePrompts', () => {
   const custom = { name: 'Markdown Table', prompt: 't {{text}}', output: 'replace' };
+  // Without a search key the search-gated commands are not offered at all.
+  const OFFERED = PRESETS.filter((p) => !p.requiresSearch);
 
   it('returns only the presets when custom prompts are disabled or malformed', () => {
-    expect(resolvePrompts(PRESETS, undefined).prompts).toEqual(PRESETS);
-    expect(resolvePrompts(PRESETS, { enable: false, prompts: [custom] }).prompts).toEqual(PRESETS);
-    expect(resolvePrompts(PRESETS, { enable: true, prompts: 'oops' }).prompts).toEqual(PRESETS);
+    expect(resolvePrompts(PRESETS, undefined).prompts).toEqual(OFFERED);
+    expect(resolvePrompts(PRESETS, { enable: false, prompts: [custom] }).prompts).toEqual(OFFERED);
+    expect(resolvePrompts(PRESETS, { enable: true, prompts: 'oops' }).prompts).toEqual(OFFERED);
   });
 
   it('appends valid custom prompts and reports invalid ones', () => {
@@ -81,7 +83,7 @@ describe('resolvePrompts', () => {
       enable: true,
       prompts: [custom, { name: 'Broken' }],
     });
-    expect(prompts).toHaveLength(PRESETS.length + 1);
+    expect(prompts).toHaveLength(OFFERED.length + 1);
     expect(prompts.at(-1)).toMatchObject({ name: 'Markdown Table', output: 'replace' });
     expect(problems).toEqual(['"Broken" has no "prompt"']);
   });
@@ -89,13 +91,21 @@ describe('resolvePrompts', () => {
   it('lets a custom prompt replace a built-in one with the same name, keeping its slot', () => {
     const override = { name: 'Summarize', prompt: 'custom', output: 'insert' };
     const { prompts } = resolvePrompts(PRESETS, { enable: true, prompts: [override] });
-    expect(prompts).toHaveLength(PRESETS.length);
+    expect(prompts).toHaveLength(OFFERED.length);
     expect(prompts.filter((p) => p.name === 'Summarize')).toEqual([
       { name: 'Summarize', prompt: 'custom', output: 'insert' },
     ]);
     expect(prompts.findIndex((p) => p.name === 'Summarize')).toBe(
-      PRESETS.findIndex((p) => p.name === 'Summarize'),
+      OFFERED.findIndex((p) => p.name === 'Summarize'),
     );
+  });
+
+  it('offers a search-gated command only once a key is configured', () => {
+    const names = (searchAvailable: boolean) =>
+      resolvePrompts(PRESETS, undefined, searchAvailable).prompts.map((p) => p.name);
+    expect(names(false)).not.toContain('Verify Online');
+    expect(names(true)).toContain('Verify Online');
+    expect(names(true).length).toBe(names(false).length + 1);
   });
 
   it('keeps the last of two custom prompts with the same name', () => {
@@ -182,7 +192,13 @@ describe('built-in prompts', () => {
     const responders = PRESETS.filter(
       (p) => p.output !== PromptOutputType.replace && p.name !== 'Summarize',
     );
-    expect(responders.map((p) => p.name)).toEqual(['Ask AI', 'Explain', 'Fact Check', 'Brainstorm']);
+    expect(responders.map((p) => p.name)).toEqual([
+      'Ask AI',
+      'Explain',
+      'Fact Check',
+      'Verify Online',
+      'Brainstorm',
+    ]);
     for (const prompt of responders) {
       expect(prompt.prompt).not.toMatch(/not a request addressed to you/i);
     }
@@ -204,6 +220,6 @@ describe('built-in prompts', () => {
       );
     expect(fromFiles).toHaveLength(files.length);
     expect(new Set(PRESETS)).toEqual(new Set(fromFiles));
-    expect(PRESETS).toHaveLength(12);
+    expect(PRESETS).toHaveLength(13);
   });
 });

@@ -1,6 +1,8 @@
 import '@logseq/libs';
 import { propertyKey, stripTag, tagSuffix, withTag } from './block';
 import { blockOps } from './graph';
+import { search } from './search';
+import { verifyWithSearch } from './verify';
 import { chat, ChatMessage, ChatResult } from './deepseek';
 import { getOutputParser, OutputParser } from './parsers';
 import { buildUserMessage, DEFAULT_SYSTEM, resolvePrompts } from './prompt';
@@ -13,7 +15,8 @@ function getSettings(): ISettings {
 }
 
 function getPrompts() {
-  return resolvePrompts(presetPrompts, getSettings().customPrompts);
+  const settings = getSettings();
+  return resolvePrompts(presetPrompts, settings.customPrompts, Boolean(settings.searchApiKey?.trim()));
 }
 
 /** The response as the pieces the output mode works with: one per list item or `key: value` pair. */
@@ -57,15 +60,26 @@ async function runPrompt(definition: IPrompt, uuid: string) {
     { model: definition.model || model || SETTING_DEFAULTS.model, messages },
   );
 
-  const pending = await logseq.UI.showMsg(`${definition.name}…`, 'info', { timeout: 0 });
+  const chatOptions = {
+    apiKey,
+    basePath: basePath || SETTING_DEFAULTS.basePath,
+    model: definition.model || model || SETTING_DEFAULTS.model,
+    temperature,
+  };
+  const searchApiKey = getSettings().searchApiKey?.trim();
+
+  const pending = await logseq.UI.showMsg(
+    definition.requiresSearch ? `${definition.name}… (searching)` : `${definition.name}…`,
+    'info',
+    { timeout: 0 },
+  );
   let result: ChatResult;
   try {
-    result = await chat(messages, {
-      apiKey,
-      basePath: basePath || SETTING_DEFAULTS.basePath,
-      model: definition.model || model || SETTING_DEFAULTS.model,
-      temperature,
-    });
+    result = definition.requiresSearch
+      ? await verifyWithSearch(messages, chatOptions, {
+          search: (query) => search(query, { apiKey: searchApiKey ?? '' }),
+        })
+      : await chat(messages, chatOptions);
   } finally {
     logseq.UI.closeMsg(pending);
   }
