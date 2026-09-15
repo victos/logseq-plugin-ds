@@ -147,7 +147,7 @@ bundled `@logseq/libs` 0.3.x client boots correctly inside an older file-graph L
 | **API Key** | *(empty)* | **Required.** Your DeepSeek key |
 | **API Base URL** | `https://api.deepseek.com/v1` | Only change this if you go through a proxy or another OpenAI-compatible endpoint |
 | **Model** | `deepseek-chat` | See below. A custom prompt can override it per command |
-| **Temperature** | `1.0` | How creative the answers are, `0.0`–`2.0`. DeepSeek suggests `0.0` for code, `1.0` for rewriting, `1.3` for chat, `1.5` for creative writing. Ignored by `deepseek-reasoner` |
+| **Temperature** | `0.3` | How closely the answer sticks to your text. Low is right for rewriting; raise it towards `1.3` for Brainstorm or Ask AI |
 | **Tag** | `[[🤖]]` | Added to AI output. Write it without the `#`; leave empty to turn tagging off |
 | **Custom Prompts** | off | Your own commands — see below |
 

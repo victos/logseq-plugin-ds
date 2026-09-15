@@ -16,7 +16,7 @@ export interface ISettings {
 export const SETTING_DEFAULTS = {
   basePath: 'https://api.deepseek.com/v1',
   model: 'deepseek-chat',
-  temperature: 1.0,
+  temperature: 0.3,
   tag: '[[🤖]]',
 } as const;
 
@@ -52,9 +52,10 @@ const settings: SettingSchemaDesc[] = [
     type: 'number',
     title: 'Temperature',
     description:
-      'Sampling temperature, 0.0 - 2.0. DeepSeek suggests 0.0 for code, 1.0 for ' +
-      'rewriting and data extraction, 1.3 for chat, 1.5 for creative writing. ' +
-      'Ignored by deepseek-reasoner.',
+      'Sampling temperature, 0.0 - 2.0. Low keeps the answer close to your own ' +
+      'text, which is what most of these commands want; at 1.0 a Chinese block ' +
+      'was observed coming back in English. Raise it towards 1.3 if you want ' +
+      'Brainstorm or Ask AI to range wider. Ignored by deepseek-reasoner.',
     default: SETTING_DEFAULTS.temperature,
   },
   {

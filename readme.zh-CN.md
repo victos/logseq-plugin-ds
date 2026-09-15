@@ -133,7 +133,7 @@ SDK 是随插件一起打包的，真正起决定作用的是 Logseq 本身的�
 | **API Key** | *(空)* | **必填**，你的 DeepSeek Key |
 | **API Base URL** | `https://api.deepseek.com/v1` | 只有走代理或换用其他 OpenAI 兼容接口时才需要改 |
 | **Model** | `deepseek-chat` | 见下文。自定义命令可以单独覆盖 |
-| **Temperature** | `1.0` | 回答的发散程度，`0.0`–`2.0`。DeepSeek 建议：写代码 `0.0`，改写 `1.0`，聊天 `1.3`，创意写作 `1.5`。对 `deepseek-reasoner` 不生效 |
+| **Temperature** | `0.3` | 回答贴合原文的程度。改写类任务宜低；想让 Brainstorm 或 Ask AI 放开一些可以调到 `1.3` 左右 |
 | **Tag** | `[[🤖]]` | 给 AI 产出打的标签。填的时候**不要**带 `#`；留空则不打标签 |
 | **Custom Prompts** | 关闭 | 自定义命令，见下文 |
 
