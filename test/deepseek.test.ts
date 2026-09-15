@@ -68,6 +68,28 @@ describe('isReasoner / buildRequestBody', () => {
     expect(buildRequestBody(MESSAGES, 'deepseek-reasoner', 0.7)).not.toHaveProperty('temperature');
   });
 
+  it('omits tools when there are none, and sends tool_choice only with tools', () => {
+    const tool = {
+      type: 'function' as const,
+      function: { name: 't', description: 'd', parameters: { type: 'object' } },
+    };
+    expect(buildRequestBody(MESSAGES, 'deepseek-chat', undefined)).not.toHaveProperty('tools');
+    expect(buildRequestBody(MESSAGES, 'deepseek-chat', undefined, [])).not.toHaveProperty('tools');
+    expect(buildRequestBody(MESSAGES, 'deepseek-chat', undefined, [], 'none')).not.toHaveProperty(
+      'tool_choice',
+    );
+    expect(buildRequestBody(MESSAGES, 'deepseek-chat', undefined, [tool])).toMatchObject({
+      tools: [tool],
+    });
+    expect(buildRequestBody(MESSAGES, 'deepseek-chat', undefined, [tool])).not.toHaveProperty(
+      'tool_choice',
+    );
+    expect(buildRequestBody(MESSAGES, 'deepseek-chat', undefined, [tool], 'none')).toMatchObject({
+      tools: [tool],
+      tool_choice: 'none',
+    });
+  });
+
   it('omits a missing or non-finite temperature', () => {
     expect(buildRequestBody(MESSAGES, 'deepseek-chat', undefined)).not.toHaveProperty('temperature');
     expect(buildRequestBody(MESSAGES, 'deepseek-chat', NaN)).not.toHaveProperty('temperature');
@@ -179,6 +201,54 @@ describe('chat', () => {
 
     const none = fakeFetch(json({ choices: [] }));
     await expect(chat(MESSAGES, { ...BASE, fetch: none.fetch })).rejects.toThrow(/empty response/);
+  });
+
+  const CALL = { id: 'c1', type: 'function', function: { name: 'web_search', arguments: '{"query":"q"}' } };
+
+  it('returns the tool calls of a turn that has no text', async () => {
+    const { fetch } = fakeFetch(
+      json({ choices: [{ message: { content: null, tool_calls: [CALL] }, finish_reason: 'tool_calls' }] }),
+    );
+    await expect(chat(MESSAGES, { ...BASE, fetch })).resolves.toEqual({
+      content: '',
+      finishReason: 'tool_calls',
+      toolCalls: [CALL],
+    });
+  });
+
+  it('keeps text written alongside tool calls and omits toolCalls when there are none', async () => {
+    const both = fakeFetch(
+      json({ choices: [{ message: { content: 'Checking.', tool_calls: [CALL] }, finish_reason: 'tool_calls' }] }),
+    );
+    await expect(chat(MESSAGES, { ...BASE, fetch: both.fetch })).resolves.toMatchObject({
+      content: 'Checking.',
+      toolCalls: [CALL],
+    });
+    const { fetch } = fakeFetch(ok('plain'));
+    await expect(chat(MESSAGES, { ...BASE, fetch })).resolves.not.toHaveProperty('toolCalls');
+  });
+
+  // A malformed entry cannot be answered — the API needs its id back — so it is
+  // dropped; a turn left with nothing usable is still an empty response.
+  it('drops malformed tool calls; an empty or all-malformed list is still an empty response', async () => {
+    const bad = [{ id: 1, function: CALL.function }, { id: 'x', function: { name: 'n' } }, 'junk', null];
+    const mixed = fakeFetch(json({ choices: [{ message: { content: '', tool_calls: [...bad, CALL] } }] }));
+    await expect(chat(MESSAGES, { ...BASE, fetch: mixed.fetch })).resolves.toMatchObject({
+      toolCalls: [CALL],
+    });
+
+    const allBad = fakeFetch(json({ choices: [{ message: { content: '', tool_calls: bad } }] }));
+    await expect(chat(MESSAGES, { ...BASE, fetch: allBad.fetch })).rejects.toThrow(/empty response/);
+
+    const none = fakeFetch(json({ choices: [{ message: { content: '', tool_calls: [] }, finish_reason: 'stop' }] }));
+    await expect(chat(MESSAGES, { ...BASE, fetch: none.fetch })).rejects.toThrow(/empty response/);
+  });
+
+  it('sends tools and tool_choice in the request body', async () => {
+    const tool = { type: 'function' as const, function: { name: 't', description: 'd', parameters: {} } };
+    const { fetch, calls } = fakeFetch(ok('x'));
+    await chat(MESSAGES, { ...BASE, tools: [tool], toolChoice: 'none', fetch });
+    expect(JSON.parse(calls[0].init.body as string)).toMatchObject({ tools: [tool], tool_choice: 'none' });
   });
 
   it('wraps network failures with the URL and a hint', async () => {

@@ -60,7 +60,7 @@ pnpm install && pnpm build
 这两类都被明确要求不得增删或编造信息。`/Shorten` 和 `/Expand` 没有这条要求 ——
 改变详略本来就是它们的任务。
 
-回答会跟随你写作的语言 —— 用中文写的块，得到的就是中文回答。（这条规则只内置在十二条预设
+回答会跟随你写作的语言 —— 用中文写的块，得到的就是中文回答。（这条规则只内置在预设
 prompt 里；自定义命令的行为完全由你写的 prompt 决定。）
 
 AI 写的内容都会带上 `#[[🤖]]` 标签，方便日后检索：被替换或追加的正文、插入的每一个子块，
@@ -163,6 +163,11 @@ DB 图上插件无从查询反向引用，所以**那里一个都不删**。两�
 代价也很直接：模型回答前会搜 2~4 次，一次运行约 7~12 秒，而 `/Fact Check` 大约 1 秒。
 日常顺手一查用 `/Fact Check`，需要**可追溯来源**时用这条 —— 版本号、日期、数字、近期发生的事。
 
+它最多搜四轮，之后必须凭手头的结果作答。某次搜索一时失败（超时、网络抖动）时，失败会告诉模型，
+模型就给那条说法写一行 `❓`；而 key 被拒绝或额度用尽时，命令会直接报错停下，让你知道该修什么。
+发给 Tavily 的只是模型自己写的搜索词 —— 从你的块里提炼出的短语 —— 块本身不会发过去。
+用 `deepseek-reasoner` 也行：这个模型得被明说一句「别再搜了」才会作答，插件会替你说。
+
 为什么用 Tavily 而不是普通搜索 API：插件跑在浏览器沙箱里，抓不了任意网页（几乎没有网站发 CORS 头）。
 Tavily 在搜索时就把正文清洗好一并返回，省掉了单独抓取这一步。
 
@@ -178,7 +183,8 @@ Tavily 在搜索时就把正文清洗好一并返回，省掉了单独抓取这�
 | **Web Search API Key** | *(空)* | 可选。[Tavily](https://tavily.com) 的 key，用于启用 `/Verify Online` |
 | **Custom Prompts** | 关闭 | 自定义命令，见下文 |
 
-前五项改完即生效，下一次执行命令时就会用新值，不需要重载插件。
+前五项改完即生效，下一次执行命令时就会用新值，不需要重载插件。Web Search API Key 则不同：
+它决定 `/Verify Online` 是否注册，所以填入或清空之后要重载插件 —— 插件会弹通知提醒。
 
 默认值的变化不会影响已有安装：Logseq 会沿用已经保存的设置值。如果你是在默认值改成 `0.3` 之前
 装的插件，Temperature 仍然是 `1.0`，想用新默认值需要自己改一下。
@@ -258,15 +264,20 @@ Tavily 在搜索时就把正文清洗好一并返回，省掉了单独抓取这�
 | `The block was deleted while DeepSeek was answering.` | 答案已被丢弃。在新的块上再执行一次命令 |
 | `This Logseq version cannot set block properties on a DB graph. Update Logseq, or change the prompt’s "output" away from "property".` | 只在 DB 图上出现：这个版本的 Logseq 没有 `upsertBlockProperty`。升级 Logseq，或者给这条命令换一种 `output` |
 | `Could not write the "…" property on this DB graph: …` | 只在 DB 图上出现：属性没能定义或写入，提示里会说明原因。先在 Logseq 里创建这个属性，或者把这条命令的 `output` 改成 `insert` |
+| `DeepSeek kept searching without answering (4 rounds). Try a shorter block.` | 只在 `/Verify Online` 出现：模型搜了四轮还想接着搜。把块拆小，每次少放几条说法 |
+| `No Tavily API key configured. Set it in the plugin settings.` | `/Verify Online` 是在配置了搜索 key 时注册的，而 key 后来被清空了。重新填上，或者重载插件让这条命令消失 |
+| `Invalid Tavily API key (401): …` | 重新把 Tavily 的 key 复制到设置里 |
+| `Tavily rate limit or monthly quota reached (429): …` | 这个月的搜索额度用完了。等下月重置，或者升级套餐 |
+| `Tavily plan limit reached (432): …` | 当前 Tavily 套餐不允许这次请求，到 Tavily 控制台看看 |
 | `DeepSeek Assistant ignored N custom prompt(s): …` | 有自定义命令配置写坏了，提示里会指出是哪条 |
-| `Custom prompts changed. Reload the plugin to register the new slash commands.` | 你新增、重命名或删除了自定义命令 |
+| `Available commands changed. Reload the plugin to update the slash menu.` | 你新增、重命名或删除了自定义命令，或者填入 / 清空了 Web Search API Key |
 
 还是不行？按 `Ctrl+Shift+I` 打开 Logseq 开发者控制台，完整的错误会打印在那里。
 
 ## 开发者信息
 
 ```sh
-pnpm test    # 207 个单元测试（vitest）
+pnpm test    # 226 个单元测试（vitest）
 pnpm lint    # 对 src/ 和 test/ 跑 eslint
 pnpm build   # tsc + vite，产物在 dist/
 ```
@@ -286,7 +297,7 @@ pnpm build   # tsc + vite，产物在 dist/
 | `src/parsers.ts` | 把回复解析成列表或结构化字段 |
 | `src/prompts/` | 内置 prompt，一个文件一条；`index.ts` 决定顺序 |
 
-运行时依赖只有 `@logseq/libs`，客户端就是一次 `fetch`。产物 gzip 后约 46 kB。
+运行时依赖只有 `@logseq/libs`，每次 API 调用都只是一次普通的 `fetch`。产物 gzip 后约 47 kB。
 
 ### 相比原项目改了什么
 

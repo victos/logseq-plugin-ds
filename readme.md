@@ -66,7 +66,7 @@ invent information. `/Shorten` and `/Expand` are not — changing the amount of 
 point of those two.
 
 Answers come back in the language you wrote in — ask in Chinese, get Chinese. (This rule is
-built into the twelve preset prompts only; custom prompts say whatever you tell them to.)
+built into the preset prompts only; custom prompts say whatever you tell them to.)
 
 Everything the AI writes is tagged `#[[🤖]]` so you can find it later: replaced or appended
 text, every child block it inserts, and a block that gained a property. You can change or
@@ -190,6 +190,13 @@ takes 7-12 seconds against roughly one for `/Fact Check`. Use `/Fact Check` for 
 sanity-checking and this when the answer has to be attributable — versions, dates, numbers,
 anything recent.
 
+It searches at most four rounds, then has to answer with what it has. A search that fails in
+passing — a timeout, a network hiccup — is reported to the model, which writes a `❓` line for
+that claim; a rejected key or a used-up quota stops the command with an error instead, so you
+learn what to fix. What reaches Tavily is the model's own search queries, short phrases drawn
+from your block — not the block itself. `deepseek-reasoner` works too; it has to be told in so
+many words when to stop searching, and the plugin does that.
+
 Why Tavily rather than a plain search API: a plugin runs in a browser sandbox and cannot fetch
 arbitrary pages, because almost none of them send CORS headers. Tavily returns cleaned page text
 as part of the search, so no separate fetching step is needed.
@@ -206,7 +213,9 @@ as part of the search, so no separate fetching step is needed.
 | **Web Search API Key** | *(empty)* | Optional. A [Tavily](https://tavily.com) key; enables `/Verify Online` |
 | **Custom Prompts** | off | Your own commands — see below |
 
-Changes to the first five apply to the next command you run; no reload needed.
+Changes to the first five apply to the next command you run; no reload needed. The Web Search
+API Key is different: it decides whether `/Verify Online` is registered at all, so setting or
+clearing it needs a reload — the plugin reminds you.
 
 A changed default does not reach an existing install: Logseq keeps the values already stored, so
 if you set the plugin up before the default moved to `0.3`, your Temperature is still `1.0`
@@ -290,15 +299,20 @@ Every failure shows up as a Logseq notification. The common ones:
 | `The block was deleted while DeepSeek was answering.` | The answer was discarded. Run the command again on the new block |
 | `This Logseq version cannot set block properties on a DB graph. Update Logseq, or change the prompt’s "output" away from "property".` | DB graphs only: this Logseq build has no `upsertBlockProperty`. Update Logseq, or give the prompt another `output` |
 | `Could not write the "…" property on this DB graph: …` | DB graphs only: the property could not be defined or written; the message says why. Create the property in Logseq first, or give the prompt `output: insert` |
+| `DeepSeek kept searching without answering (4 rounds). Try a shorter block.` | `/Verify Online` only: the model wanted a fifth round of searching. Put fewer claims in the block |
+| `No Tavily API key configured. Set it in the plugin settings.` | `/Verify Online` was registered while a search key was set, and the key has since been cleared. Set it again, or reload the plugin to drop the command |
+| `Invalid Tavily API key (401): …` | Re-copy the Tavily key into settings |
+| `Tavily rate limit or monthly quota reached (429): …` | The month's searches are used up. Wait for the reset or upgrade the plan |
+| `Tavily plan limit reached (432): …` | Your Tavily plan does not allow the request; check the Tavily dashboard |
 | `DeepSeek Assistant ignored N custom prompt(s): …` | One of your custom prompts is malformed; the message names it |
-| `Custom prompts changed. Reload the plugin to register the new slash commands.` | You added, renamed or removed a custom prompt |
+| `Available commands changed. Reload the plugin to update the slash menu.` | You added, renamed or removed a custom prompt, or set or cleared the Web Search API Key |
 
 Still stuck? Open the Logseq developer console (`Ctrl+Shift+I`) — the full error is logged there.
 
 ## For developers
 
 ```sh
-pnpm test    # 207 unit tests (vitest)
+pnpm test    # 226 unit tests (vitest)
 pnpm lint    # eslint over src/ and test/
 pnpm build   # tsc + vite → dist/
 ```
@@ -318,8 +332,8 @@ Source layout:
 | `src/parsers.ts` | Turning a reply into a list or named fields |
 | `src/prompts/` | The built-in prompts, one per file; `index.ts` sets the order |
 
-`@logseq/libs` is the only runtime dependency; the client is a single `fetch` call. Bundle is
-about 46 kB gzipped.
+`@logseq/libs` is the only runtime dependency; every API call is a plain `fetch`. Bundle is
+about 47 kB gzipped.
 
 ### What changed from the original
 

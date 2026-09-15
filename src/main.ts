@@ -1,7 +1,7 @@
 import '@logseq/libs';
 import { propertyKey, stripTag, tagSuffix, withTag } from './block';
 import { blockOps } from './graph';
-import { search } from './search';
+import { NO_SEARCH_KEY_MESSAGE, search } from './search';
 import { verifyWithSearch } from './verify';
 import { chat, ChatMessage, ChatResult } from './deepseek';
 import { getOutputParser, OutputParser } from './parsers';
@@ -67,6 +67,11 @@ async function runPrompt(definition: IPrompt, uuid: string) {
     temperature,
   };
   const searchApiKey = getSettings().searchApiKey?.trim();
+  if (definition.requiresSearch && !searchApiKey) {
+    // The command was registered while a key was set and the key has since
+    // been cleared; it cannot be unregistered until the plugin reloads.
+    throw new Error(NO_SEARCH_KEY_MESSAGE);
+  }
 
   const pending = await logseq.UI.showMsg(
     definition.requiresSearch ? `${definition.name}… (searching)` : `${definition.name}…`,
@@ -166,7 +171,8 @@ function main() {
   }
 
   // Slash commands cannot be unregistered, so re-running main() here would
-  // duplicate every command. Ask for a reload instead when the set of names moves.
+  // duplicate every command. Ask for a reload instead when the set of names
+  // moves — a custom prompt added or renamed, or the search key set or cleared.
   let lastProblems = problems.join('\n');
   logseq.onSettingsChanged(() => {
     const next = getPrompts();
@@ -175,7 +181,7 @@ function main() {
       names.length !== registered.size || names.some((name) => !registered.has(name));
     if (changed) {
       logseq.UI.showMsg(
-        'Custom prompts changed. Reload the plugin to register the new slash commands.',
+        'Available commands changed. Reload the plugin to update the slash menu.',
         'warning',
       );
     }

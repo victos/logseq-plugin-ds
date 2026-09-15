@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
-import { MAX_HIT_CHARS, SEARCH_ENDPOINT, formatForModel, search } from '../src/search';
+import {
+  MAX_HIT_CHARS,
+  SEARCH_ENDPOINT,
+  SearchUnavailableError,
+  formatForModel,
+  search,
+} from '../src/search';
 
 const KEY = { apiKey: 'tvly-test' };
 
@@ -60,6 +66,8 @@ describe('search', () => {
       throw new Error('should not be called');
     }) as unknown as typeof fetch;
     await expect(search('q', { apiKey: '' }, never)).rejects.toThrow(/No Tavily API key/);
+    await expect(search('q', { apiKey: ' \n' }, never)).rejects.toThrow(/No Tavily API key/);
+    await expect(search('q', { apiKey: '' }, never)).rejects.toBeInstanceOf(SearchUnavailableError);
     await expect(search('  ', KEY, never)).rejects.toThrow(/Empty search query/);
   });
 
@@ -71,6 +79,23 @@ describe('search', () => {
     [500, /Web search failed \(500\)/],
   ])('explains HTTP %i', async (status, pattern) => {
     await expect(search('q', KEY, stub(status, { detail: 'nope' }))).rejects.toThrow(pattern);
+  });
+
+  // Key and quota problems are for the user to fix; the loop must not hide them
+  // behind the model. Anything else may pass, and the model is told instead.
+  it.each([
+    [401, true],
+    [403, true],
+    [429, true],
+    [432, true],
+    [433, true],
+    [400, false],
+    [500, false],
+    [502, false],
+  ])('HTTP %i is unavailable: %s', async (status, unavailable) => {
+    const error: unknown = await search('q', KEY, stub(status, { detail: 'x' })).catch((e) => e);
+    expect(error).toBeInstanceOf(Error);
+    expect(error instanceof SearchUnavailableError).toBe(unavailable);
   });
 
   it('reports a non-JSON body rather than crashing', async () => {
@@ -91,6 +116,20 @@ describe('search', () => {
     await vi.advanceTimersByTimeAsync(30_000);
     await assertion;
     vi.useRealTimers();
+  });
+
+  it('honours a signal that was already aborted before the call', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const hang = ((_url: string, init: RequestInit) =>
+      new Promise<Response>((_resolve, reject) => {
+        if (init.signal!.aborted) {
+          reject(new DOMException('Aborted', 'AbortError'));
+        }
+      })) as unknown as typeof fetch;
+    await expect(search('q', { ...KEY, signal: controller.signal }, hang)).rejects.toThrow(
+      /was cancelled/,
+    );
   });
 
   it('honours an external abort signal', async () => {

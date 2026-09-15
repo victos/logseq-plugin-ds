@@ -128,6 +128,18 @@ describe('list parser drops non-findings', () => {
     expect(parse(line)).toEqual([line]);
   });
 
+  // /Verify Online's three line forms have no ✅ after the arrow, so none of
+  // them can be mistaken for a non-finding — even when the source confirms the
+  // claim word for word.
+  it('keeps every /Verify Online verdict form', () => {
+    const lines = [
+      '✅ Everest is 8,848.86 m — https://e.com/1',
+      '❌ Everest is 8,000 m → 8,848.86 m per the 2020 survey — https://e.com/2',
+      '❓ Everest is 8,848.86 m — no reliable source found',
+    ];
+    expect(list().parse(lines.join('\n'))).toEqual(lines);
+  });
+
   it('leaves lines that are not verdicts alone', () => {
     expect(parse('未发现事实错误。')).toEqual(['未发现事实错误。']);
     expect(parse('an ordinary brainstormed idea')).toEqual(['an ordinary brainstormed idea']);

@@ -26,6 +26,20 @@ export interface SearchResult {
 }
 
 export const SEARCH_ENDPOINT = 'https://api.tavily.com/search';
+export const NO_SEARCH_KEY_MESSAGE = 'No Tavily API key configured. Set it in the plugin settings.';
+
+/**
+ * A failure that nothing within the run can cure: no key, a rejected key, an
+ * exhausted quota. The search loop lets it surface as the command's error, so
+ * the user learns what to fix; every other failure is handed to the model as
+ * the tool's reply, and the model says it could not verify the claim.
+ */
+export class SearchUnavailableError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'SearchUnavailableError';
+  }
+}
 export const DEFAULT_SEARCH_TIMEOUT_MS = 30 * 1000;
 /** Per hit. Enough to settle a claim without crowding out the block itself. */
 export const MAX_HIT_CHARS = 900;
@@ -41,7 +55,7 @@ function text(value: unknown): string {
   return typeof value === 'string' ? value : '';
 }
 
-function describeError(status: number, body: string): string {
+function describeError(status: number, body: string): Error {
   let detail = body.slice(0, 200);
   try {
     const parsed = JSON.parse(body) as TavilyResponse;
@@ -53,14 +67,14 @@ function describeError(status: number, body: string): string {
   switch (status) {
     case 401:
     case 403:
-      return `Invalid Tavily API key (${status}): ${detail}`;
+      return new SearchUnavailableError(`Invalid Tavily API key (${status}): ${detail}`);
     case 429:
-      return `Tavily rate limit or monthly quota reached (429): ${detail}`;
+      return new SearchUnavailableError(`Tavily rate limit or monthly quota reached (429): ${detail}`);
     case 432:
     case 433:
-      return `Tavily plan limit reached (${status}): ${detail}`;
+      return new SearchUnavailableError(`Tavily plan limit reached (${status}): ${detail}`);
     default:
-      return `Web search failed (${status}): ${detail}`;
+      return new Error(`Web search failed (${status}): ${detail}`);
   }
 }
 
@@ -69,8 +83,9 @@ export async function search(
   options: SearchOptions,
   doFetch: typeof fetch = fetch,
 ): Promise<SearchResult> {
-  if (!options.apiKey) {
-    throw new Error('No Tavily API key configured. Set it in the plugin settings.');
+  const apiKey = options.apiKey?.trim();
+  if (!apiKey) {
+    throw new SearchUnavailableError(NO_SEARCH_KEY_MESSAGE);
   }
   if (!query.trim()) {
     throw new Error('Empty search query.');
@@ -84,7 +99,11 @@ export async function search(
     controller.abort();
   }, timeoutMs);
   const forward = () => controller.abort();
-  options.signal?.addEventListener('abort', forward);
+  if (options.signal?.aborted) {
+    forward();
+  } else {
+    options.signal?.addEventListener('abort', forward, { once: true });
+  }
 
   let response: Response;
   let body: string;
@@ -94,7 +113,7 @@ export async function search(
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${options.apiKey.trim()}`,
+          Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
           query: query.trim(),
@@ -120,7 +139,7 @@ export async function search(
   }
 
   if (!response.ok) {
-    throw new Error(describeError(response.status, body));
+    throw describeError(response.status, body);
   }
 
   let payload: TavilyResponse;

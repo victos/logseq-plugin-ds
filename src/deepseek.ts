@@ -35,6 +35,12 @@ export interface ChatOptions {
   fetch?: typeof fetch;
   /** Tools the model may ask to have run. Omitted entirely when empty. */
   tools?: ToolSpec[];
+  /**
+   * `'none'` keeps the tool definitions in the request but forbids calling them,
+   * which is how a model that has searched enough is made to answer. Sent only
+   * together with `tools`.
+   */
+  toolChoice?: 'auto' | 'none' | 'required';
 }
 
 export interface ChatResult {
@@ -105,6 +111,7 @@ export function buildRequestBody(
   model: string,
   temperature: number | undefined,
   tools?: ToolSpec[],
+  toolChoice?: ChatOptions['toolChoice'],
 ): Record<string, unknown> {
   const body: Record<string, unknown> = { model, messages, stream: false };
   if (!isReasoner(model) && typeof temperature === 'number' && Number.isFinite(temperature)) {
@@ -113,6 +120,9 @@ export function buildRequestBody(
   // An empty array is not the same as no tools: some endpoints reject it.
   if (tools && tools.length > 0) {
     body.tools = tools;
+    if (toolChoice) {
+      body.tool_choice = toolChoice;
+    }
   }
   return body;
 }
@@ -206,7 +216,9 @@ export async function chat(messages: ChatMessage[], options: ChatOptions): Promi
           'Content-Type': 'application/json',
           Authorization: `Bearer ${apiKey}`,
         },
-        body: JSON.stringify(buildRequestBody(messages, model, options.temperature, options.tools)),
+        body: JSON.stringify(buildRequestBody(
+          messages, model, options.temperature, options.tools, options.toolChoice,
+        )),
         signal: controller.signal,
       });
     } catch (error) {

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ChatMessage, ChatOptions, ChatResult } from '../src/deepseek';
-import { SearchResult } from '../src/search';
-import { MAX_SEARCH_HOPS, SEARCH_TOOL, verifyWithSearch } from '../src/verify';
+import { SearchResult, SearchUnavailableError } from '../src/search';
+import { ANSWER_NOW, MAX_SEARCH_HOPS, SEARCH_TOOL, verifyWithSearch } from '../src/verify';
 
 const BASE: ChatOptions = {
   apiKey: 'k',
@@ -23,9 +23,9 @@ const toolCall = (id: string, query: string, name = 'web_search') => ({
 
 /** A scripted model: returns the next canned result, recording what it saw. */
 function scriptedChat(replies: ChatResult[]) {
-  const seen: Array<{ messages: ChatMessage[]; tools?: unknown }> = [];
+  const seen: Array<{ messages: ChatMessage[]; tools?: unknown; toolChoice?: string }> = [];
   const chat = vi.fn(async (messages: ChatMessage[], options: ChatOptions) => {
-    seen.push({ messages: [...messages], tools: options.tools });
+    seen.push({ messages: [...messages], tools: options.tools, toolChoice: options.toolChoice });
     const next = replies.shift();
     if (!next) throw new Error('the model was asked more times than the script allows');
     return next;
@@ -40,6 +40,7 @@ describe('verifyWithSearch', () => {
     expect(r.content).toBe('done');
     expect(r.queries).toEqual([]);
     expect(seen[0].tools).toEqual([SEARCH_TOOL]);
+    expect(seen[0].toolChoice).toBeUndefined();
   });
 
   it('runs the search and feeds the result back as a tool message', async () => {
@@ -98,7 +99,10 @@ describe('verifyWithSearch', () => {
     expect(seen[1].messages[3].content).toBe('No query given.');
   });
 
-  it('withdraws the tool on the last pass so the model has to answer', async () => {
+  // Seen live with deepseek-reasoner: given a history full of tool calls and a
+  // request that no longer declares the tool, it answered with raw tool-call
+  // markup as text. The definitions therefore stay; calling is forbidden instead.
+  it('keeps the tool defined on the last pass but forbids calling it', async () => {
     const replies: ChatResult[] = Array.from({ length: MAX_SEARCH_HOPS }, (_, i) => ({
       content: '',
       toolCalls: [toolCall(`c${i}`, `q${i}`)],
@@ -108,17 +112,74 @@ describe('verifyWithSearch', () => {
     const r = await verifyWithSearch(MESSAGES, BASE, { chat, search: async () => hit('u') });
     expect(r.content).toBe('final');
     expect(seen).toHaveLength(MAX_SEARCH_HOPS + 1);
-    expect(seen.at(-1)!.tools).toBeUndefined();
+    expect(seen.slice(0, -1).every((s) => s.toolChoice === undefined)).toBe(true);
+    expect(seen.slice(0, -1).some((s) => s.messages.some((m) => m.content === ANSWER_NOW))).toBe(false);
+    const final = seen.at(-1)!;
+    expect(final.tools).toEqual([SEARCH_TOOL]);
+    expect(final.toolChoice).toBe('none');
+    expect(final.messages.at(-1)).toEqual({ role: 'user', content: ANSWER_NOW });
   });
 
-  it('gives up if the model still only asks for tools with none offered', async () => {
+  // Seen live: refused a call, deepseek-reasoner wrote the call out as text.
+  it('rejects an answer that is really leaked tool-call markup', async () => {
     const { chat } = scriptedChat([
-      { content: '', toolCalls: [toolCall('a', 'q')] },
-      { content: '', toolCalls: [toolCall('b', 'q')] },
+      { content: '<｜DSML｜ calls>\n<｜DSML｜ invoke name="web_search">…' },
     ]);
     await expect(
-      verifyWithSearch(MESSAGES, BASE, { chat, search: async () => hit('u'), maxHops: 1 }),
+      verifyWithSearch(MESSAGES, BASE, { chat, search: async () => hit('u') }),
     ).rejects.toThrow(/kept searching without answering/);
+  });
+
+  it('gives up if the model still asks for tools when forbidden, without serving them', async () => {
+    const { chat } = scriptedChat([
+      { content: '', toolCalls: [toolCall('a', 'q')] },
+      { content: '', toolCalls: [toolCall('b', 'q2')] },
+    ]);
+    const search = vi.fn(async () => hit('u'));
+    await expect(
+      verifyWithSearch(MESSAGES, BASE, { chat, search, maxHops: 1 }),
+    ).rejects.toThrow(/kept searching without answering \(1 rounds\)/);
+    expect(search).toHaveBeenCalledTimes(1);
+  });
+
+  it('carries text the model wrote alongside its tool calls into the history', async () => {
+    const { chat, seen } = scriptedChat([
+      { content: 'Let me check.', toolCalls: [toolCall('c1', 'q')] },
+      { content: 'checked' },
+    ]);
+    const r = await verifyWithSearch(MESSAGES, BASE, { chat, search: async () => hit('u') });
+    expect(r.content).toBe('checked');
+    expect(seen[1].messages[1]).toMatchObject({ role: 'assistant', content: 'Let me check.' });
+  });
+
+  // Each search costs a credit, and the answer to the same query has not changed.
+  it('answers a repeated query from the earlier result without searching again', async () => {
+    const { chat, seen } = scriptedChat([
+      { content: '', toolCalls: [toolCall('a', 'same query')] },
+      { content: '', toolCalls: [toolCall('b', ' same query ')] },
+      { content: 'done' },
+    ]);
+    const search = vi.fn(async () => hit('https://e.com/once'));
+    const r = await verifyWithSearch(MESSAGES, BASE, { chat, search });
+    expect(search).toHaveBeenCalledTimes(1);
+    expect(r.queries).toEqual(['same query', 'same query']);
+    expect(seen[2].messages[4].content).toBe(seen[2].messages[2].content);
+  });
+
+  // A bad key or a spent quota cannot be talked around: the user has to act,
+  // and a page of ❓ would hide that from them.
+  it('lets a search-unavailable error surface instead of feeding it to the model', async () => {
+    const { chat } = scriptedChat([
+      { content: '', toolCalls: [toolCall('c1', 'q')] },
+      { content: 'never reached' },
+    ]);
+    const search = async () => {
+      throw new SearchUnavailableError('Invalid Tavily API key (401): nope');
+    };
+    await expect(verifyWithSearch(MESSAGES, BASE, { chat, search })).rejects.toThrow(
+      /Invalid Tavily API key \(401\)/,
+    );
+    expect(chat).toHaveBeenCalledTimes(1);
   });
 
   it('does not mutate the caller’s messages', async () => {
