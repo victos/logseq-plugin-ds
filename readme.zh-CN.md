@@ -97,12 +97,29 @@ Logseq 的两种存储后端对「块」的建模完全不同，插件会自动�
 文件图上，属性行会在发送前被剥离、写回时原样恢复；DB 图上正文和属性本来就是分开的，替换文本
 根本碰不到属性，也就无需重组。
 
-**DB 那条路径有单元测试，但从未在真实的 DB 图上跑过。** 它是照着 `@logseq/libs` 的类型定义写的。
-在你亲自验证之前，请当它是未经实测的 —— 这也是 `marketplace/manifest.json` 里
-`supportsDB` 仍为 `false` 的原因。
+**DB 那条路径有单元测试，但从未在真实的 DB 图上跑过。** 它是照着 `@logseq/libs` 0.3.4 的类型定义写的，
+测试时对接的也只是一个假的编辑器对象。有三点尤其没有验证过：`upsertBlockProperty` 遇到尚不存在的属性会不会
+自动创建；DB 图会怎么处理追加在正文末尾的 `#[[🤖]]` 标签（有可能被转成标签实体、从正文里去掉）；
+以及对正在编辑中的块调用 `updateBlock` 是什么效果。在你亲自验证之前，请当它是未经实测的 ——
+这也是 `marketplace/manifest.json` 里 `supportsDB` 仍为 `false` 的原因。
 
-DB API 需要 `@logseq/libs` 0.3.x。在更老的 Logseq 上（没有 `checkCurrentIsDbGraph` 这个 API），
-插件会回退到文件图路径 —— 这是正确的，因为那些版本本来就只有文件图。
+SDK 是随插件一起打包的，真正起决定作用的是 Logseq 本身的版本。DB 路径要求 Logseq 提供
+`checkCurrentIsDbGraph` 和 `upsertBlockProperty` 这两个 API。老版本没有 `checkCurrentIsDbGraph`，
+插件就走文件图路径 —— 这是对的，因为那些版本本来就只有文件图。新版本如果返回的文件图块把 markdown
+放在 `title` 里、没有 `content`，文件图路径会改读 `title`。
+
+有两点是**对着真实 DB 图实测**的（Logseq desktop nightly，走它自带的 CLI），而不是从类型定义推断的：
+
+- 写进块正文的 `#[[🤖]]` 标签**会留在正文里** —— DB 不会把它抽成独立的 tag 字段，所以上面描述的
+  标签行为在两种后端上都成立。
+- **DB 图不允许给块加一个尚不存在的属性**（报错原文 `Property :summarize doesn't exist yet`），
+  而且属性最终存储用的是它自己生成的带命名空间 ident，不是你传进去的名字。所以 `/Summarize`
+  会先定义属性再写入；万一仍被拒绝，你会看到明确提示，并建议改用 `output: insert`。
+
+仍未验证的部分 —— 这些需要插件真正跑在 Logseq 里，CLI 验不了：DB 图上
+`getBlock({includeChildren: true})` 的子块嵌套结构是否一致、`insertBlock` 是否追加为最后一个
+子块（`/Brainstorm` 的顺序依赖它）、以及打包进来的 `@logseq/libs` 0.3.x 客户端能否在更老的
+文件图版 Logseq 里正常启动。
 
 ## 设置项
 
@@ -163,7 +180,7 @@ DB API 需要 `@logseq/libs` 0.3.x。在更老的 Logseq 上（没有 `checkCurr
 | --- | --- |
 | `replace` | `营收涨 12%，流失也在涨。 #[[🤖]]` |
 | `append` | `三季度营收增长 12%，但流失率也上升了。 值得深挖。 #[[🤖]]` |
-| `property` | 原文保留并打上标签，增加一行 `markdown-table:: …`（属性名取自命令名，转小写、空格换成连字符） |
+| `property` | 原文保留并打上标签，增加一行 `markdown-table:: …`（属性名取自命令名，转小写、空格换成连字符；在 DB 图上则是一个 `markdown-table` 属性）。配了 `format` 的话，各项之间用 `, ` 连接 |
 | `insert` | 原文保留，答案作为子块插入；配了 `format` 就是每项一个子块 |
 
 两点值得注意：
@@ -189,6 +206,8 @@ DB API 需要 `@logseq/libs` 0.3.x。在更老的 Logseq 上（没有 `checkCurr
 | `DeepSeek did not answer within 300 s.` | 重试。如果用 `deepseek-reasoner` 时反复出现，换成 `deepseek-chat` 或者把块拆小 |
 | `DeepSeek stopped at its output limit — the answer may be cut off.` | 答案已经写入，但可能被截断了。让它写短一点 |
 | `The block is empty — nothing to send to DeepSeek.` | 这个块（连同子块）去掉属性之后没有正文 |
+| `The block was deleted while DeepSeek was answering.` | 答案已被丢弃。在新的块上再执行一次命令 |
+| `This Logseq version cannot set block properties on a DB graph. Update Logseq, or change the prompt’s "output" away from "property".` | 只在 DB 图上出现：这个版本的 Logseq 没有 `upsertBlockProperty`。升级 Logseq，或者给这条命令换一种 `output` |
 | `DeepSeek Assistant ignored N custom prompt(s): …` | 有自定义命令配置写坏了，提示里会指出是哪条 |
 | `Custom prompts changed. Reload the plugin to register the new slash commands.` | 你新增、重命名或删除了自定义命令 |
 
@@ -197,7 +216,7 @@ DB API 需要 `@logseq/libs` 0.3.x。在更老的 Logseq 上（没有 `checkCurr
 ## 开发者信息
 
 ```sh
-pnpm test    # 132 个单元测试（vitest）
+pnpm test    # 143 个单元测试（vitest）
 pnpm lint    # 对 src/ 和 test/ 跑 eslint
 pnpm build   # tsc + vite，产物在 dist/
 ```
@@ -210,11 +229,12 @@ pnpm build   # tsc + vite，产物在 dist/
 | `src/graph.ts` | 文件图 / DB 图适配层，所有对块的读写都走这里 |
 | `src/block.ts` | 块内容处理 —— 属性拆分、标签、编辑器与数据库内容合并 |
 | `src/prompt.ts` | 拼装 prompt、校验自定义命令 |
+| `src/settings.ts` | 设置项的 schema 和默认值 |
 | `src/deepseek.ts` | API 客户端 |
 | `src/parsers.ts` | 把回复解析成列表或结构化字段 |
 | `src/prompts/` | 内置 prompt，一个文件一条；`index.ts` 决定顺序 |
 
-运行时依赖只有 `@logseq/libs`，客户端就是一次 `fetch`。产物约 43.1 kB（gzip 后）。
+运行时依赖只有 `@logseq/libs`，客户端就是一次 `fetch`。产物 gzip 后约 43 kB。
 
 ### 相比原项目改了什么
 

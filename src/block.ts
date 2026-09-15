@@ -80,7 +80,20 @@ function isBlock(value: unknown): value is BlockLike {
  * between file graphs (strip `key:: value` lines) and DB graphs (use `title`).
  */
 export function fileText(block: BlockLike): string {
-  return splitProperties(block.content ?? '').body;
+  return splitProperties(blockContent(block)).body;
+}
+
+/**
+ * The raw markdown of a file-graph block. Normally `content`; newer Logseq
+ * builds (`@logseq/libs` 0.3.x types) make `content` optional and carry the
+ * same string in `title`, so that is the fallback. Older builds declare no
+ * `title` on a block at all, and have been observed to put a parsed AST there;
+ * anything that is not a string is ignored, which covers both.
+ */
+export function blockContent(block: BlockLike): string {
+  if (typeof block.content === 'string') return block.content;
+  if (typeof block.title === 'string') return block.title;
+  return '';
 }
 
 export function blockToText(
@@ -180,7 +193,7 @@ export function mergeContent(editorContent: string, savedContent: string): strin
 
 /** The subset of `logseq.Editor` needed to read a block as the user sees it. */
 export interface BlockReader {
-  getBlock(uuid: string): Promise<{ content?: string | null } | null>;
+  getBlock(uuid: string): Promise<BlockLike | null>;
   checkEditing(): Promise<string | boolean>;
   getEditingBlockContent(): Promise<string>;
 }
@@ -196,7 +209,7 @@ export async function readCurrentContent(reader: BlockReader, uuid: string): Pro
   if (!block) {
     return null;
   }
-  const saved = block.content ?? '';
+  const saved = blockContent(block);
   if ((await reader.checkEditing()) === uuid) {
     return mergeContent(await reader.getEditingBlockContent(), saved);
   }

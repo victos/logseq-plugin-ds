@@ -33,7 +33,7 @@ async function runPrompt(definition: IPrompt, uuid: string) {
 
   // Which adapter applies is resolved per invocation, so switching between a
   // file graph and a DB graph does not need a plugin reload.
-  const ops = await blockOps(logseq.App, logseq.Editor as never);
+  const ops = await blockOps(logseq.App, logseq.Editor);
 
   const content = stripTag(await ops.readContext(uuid), tag).trim();
   if (!content) {

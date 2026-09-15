@@ -13,6 +13,7 @@
  * `main.ts` never has to know which backend it is talking to.
  */
 import {
+  blockContent,
   blockToText,
   composeAppend,
   composeProperty,
@@ -41,9 +42,11 @@ export interface BlockOps {
 export interface EditorApi {
   getBlock(uuid: string, opts?: { includeChildren?: boolean }): Promise<Record<string, unknown> | null>;
   updateBlock(uuid: string, content: string): Promise<void>;
-  insertBlock(uuid: string, content: string): Promise<unknown>;
+  insertBlock(uuid: string, content: string, opts?: Record<string, unknown>): Promise<unknown>;
   checkEditing(): Promise<string | boolean>;
   getEditingBlockContent(): Promise<string>;
+  /** Defines the property itself. On a DB graph it must exist before any block can carry it. */
+  upsertProperty?(key: string, schema?: Record<string, unknown>, opts?: { name?: string }): Promise<unknown>;
   upsertBlockProperty?(uuid: string, key: string, value: unknown): Promise<void>;
 }
 
@@ -56,12 +59,12 @@ export class FileGraphOps implements BlockOps {
     if (!block) {
       return '';
     }
-    const live = await readCurrentContent(this.editor as never, uuid);
-    return blockToText({ ...block, content: live ?? (block.content as string) });
+    const live = await readCurrentContent(this.editor, uuid);
+    return blockToText({ ...block, content: live ?? blockContent(block) });
   }
 
   readText(uuid: string) {
-    return readCurrentContent(this.editor as never, uuid);
+    return readCurrentContent(this.editor, uuid);
   }
 
   async replaceText(uuid: string, text: string, tag: string) {
@@ -100,7 +103,7 @@ export class DbGraphOps implements BlockOps {
     if ((await this.editor.checkEditing()) === uuid) {
       return this.editor.getEditingBlockContent();
     }
-    return (block.title as string) ?? (block.content as string) ?? '';
+    return dbText(block);
   }
 
   async readContext(uuid: string) {
@@ -109,7 +112,7 @@ export class DbGraphOps implements BlockOps {
       return '';
     }
     const live = await this.currentText(uuid);
-    return blockToText({ ...block, title: live ?? undefined } as never, dbText);
+    return blockToText({ ...block, title: live ?? dbText(block) }, dbText);
   }
 
   readText(uuid: string) {
@@ -128,6 +131,13 @@ export class DbGraphOps implements BlockOps {
     await this.editor.updateBlock(uuid, withTag(text, tag));
   }
 
+  /**
+   * A DB graph refuses to put a property on a block before the property itself
+   * exists ("Property :summarize doesn't exist yet", observed against a real
+   * graph), and it stores it under a namespaced ident of its own choosing
+   * rather than under the key given here. So the property is defined first;
+   * `upsertProperty` is a no-op when it already exists.
+   */
   async setProperty(uuid: string, key: string, value: string, tag: string) {
     const latest = await this.currentText(uuid);
     if (latest === null) return;
@@ -137,7 +147,28 @@ export class DbGraphOps implements BlockOps {
           'or change the prompt’s "output" away from "property".',
       );
     }
-    await this.editor.upsertBlockProperty(uuid, key, propertyValue(value));
+
+    if (this.editor.upsertProperty) {
+      try {
+        await this.editor.upsertProperty(key, { type: 'default', cardinality: 'one' }, { name: key });
+      } catch (error) {
+        // Already defined, or defined with a different schema — either is fine;
+        // the write below is what decides whether this actually worked.
+        console.warn(`[DeepSeek Assistant] could not define property "${key}":`, error);
+      }
+    }
+
+    try {
+      await this.editor.upsertBlockProperty(uuid, key, propertyValue(value));
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `Could not write the "${key}" property on this DB graph: ${detail}. ` +
+          'Create the property in Logseq first, or change the prompt’s "output" ' +
+          'to "insert" so the answer becomes a child block instead.',
+      );
+    }
+
     const tagged = withTag(latest, tag);
     if (tagged !== latest) {
       await this.editor.updateBlock(uuid, tagged);

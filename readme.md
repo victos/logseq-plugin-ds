@@ -105,12 +105,34 @@ untouched afterwards. On a DB graph the text can be replaced without touching pr
 all, so nothing has to be reassembled.
 
 **The DB path is unit tested but has never run against a real DB graph.** It is written against
-the `@logseq/libs` type definitions. Treat it as untested in practice until you have tried it,
-which is why `marketplace/manifest.json` still declares `supportsDB: false`.
+the `@logseq/libs` 0.3.4 type definitions and exercised only against a fake editor. Three things
+in particular are unverified: whether `upsertBlockProperty` creates a property that does not
+exist yet, what a DB graph does with the `#[[🤖]]` tag appended to the text (it may turn it into
+a tag entity and drop it from the text), and how `updateBlock` behaves on a block that is being
+edited. Treat it as untested in practice until you have tried it, which is why
+`marketplace/manifest.json` still declares `supportsDB: false`.
 
-Requires `@logseq/libs` 0.3.x for the DB APIs. On older Logseq builds, where
-`checkCurrentIsDbGraph` does not exist, the plugin falls back to the file-graph path — which is
-correct, since those builds only have file graphs.
+The SDK is bundled with the plugin; what matters is the Logseq build. The DB path needs a build
+that exposes `checkCurrentIsDbGraph` and `upsertBlockProperty`. On older builds, where
+`checkCurrentIsDbGraph` does not exist, the plugin takes the file-graph path — which is correct,
+since those builds only have file graphs. On newer builds that hand back a file-graph block with
+the markdown in `title` and no `content`, the file-graph path reads `title` instead.
+
+Two things were checked against a real DB graph (Logseq desktop nightly, via its CLI) rather
+than inferred from type definitions:
+
+- A `#[[🤖]]` tag written into a block's text stays in the text — the DB does not extract it
+  into a separate tag field, so the tag behaviour described above holds on both backends.
+- A DB graph refuses to put a property on a block until that property exists
+  (`Property :summarize doesn't exist yet`), and then stores it under a namespaced ident of
+  its own, not under the name given. `/Summarize` therefore defines the property before
+  writing it, and if the write is still refused you get a message saying so and suggesting
+  `output: insert` instead.
+
+Still unverified, because they need the plugin running inside Logseq rather than the CLI:
+whether `getBlock({includeChildren: true})` nests children the same way on a DB graph, whether
+`insertBlock` appends as the last child (`/Brainstorm` depends on the order), and whether the
+bundled `@logseq/libs` 0.3.x client boots correctly inside an older file-graph Logseq build.
 
 ## Settings
 
@@ -174,7 +196,7 @@ The four `output` modes, using the block `Q3 revenue grew 12% but churn also ros
 | --- | --- |
 | `replace` | `Revenue up 12%; churn up too. #[[🤖]]` |
 | `append` | `Q3 revenue grew 12% but churn also rose. Worth investigating. #[[🤖]]` |
-| `property` | Block keeps its text and is tagged; gains `markdown-table:: …` (the key is the command name, lower-cased and hyphenated) |
+| `property` | Block keeps its text and is tagged; gains `markdown-table:: …` (the key is the command name, lower-cased and hyphenated; on a DB graph it is a `markdown-table` property). With `format`, the items are joined with `, ` |
 | `insert` | Block keeps its text; the answer becomes a child block. With `format`, one child block per item |
 
 Two things worth knowing:
@@ -200,6 +222,8 @@ Every failure shows up as a Logseq notification. The common ones:
 | `DeepSeek did not answer within 300 s.` | Retry. If it keeps happening on `deepseek-reasoner`, switch to `deepseek-chat` or use a smaller block |
 | `DeepSeek stopped at its output limit — the answer may be cut off.` | The answer was written but may be truncated. Ask for something shorter |
 | `The block is empty — nothing to send to DeepSeek.` | The block (and its children) had no text after removing properties |
+| `The block was deleted while DeepSeek was answering.` | The answer was discarded. Run the command again on the new block |
+| `This Logseq version cannot set block properties on a DB graph. Update Logseq, or change the prompt’s "output" away from "property".` | DB graphs only: this Logseq build has no `upsertBlockProperty`. Update Logseq, or give the prompt another `output` |
 | `DeepSeek Assistant ignored N custom prompt(s): …` | One of your custom prompts is malformed; the message names it |
 | `Custom prompts changed. Reload the plugin to register the new slash commands.` | You added, renamed or removed a custom prompt |
 
@@ -208,7 +232,7 @@ Still stuck? Open the Logseq developer console (`Ctrl+Shift+I`) — the full err
 ## For developers
 
 ```sh
-pnpm test    # 132 unit tests (vitest)
+pnpm test    # 143 unit tests (vitest)
 pnpm lint    # eslint over src/ and test/
 pnpm build   # tsc + vite → dist/
 ```
@@ -221,6 +245,7 @@ Source layout:
 | `src/graph.ts` | File-graph / DB-graph adapters; everything that touches a block goes through it |
 | `src/block.ts` | Block content — property splitting, tags, editor/DB merge |
 | `src/prompt.ts` | Prompt assembly and custom-prompt validation |
+| `src/settings.ts` | The settings schema and its defaults |
 | `src/deepseek.ts` | The API client |
 | `src/parsers.ts` | Turning a reply into a list or named fields |
 | `src/prompts/` | The built-in prompts, one per file; `index.ts` sets the order |

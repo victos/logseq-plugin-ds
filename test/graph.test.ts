@@ -6,10 +6,23 @@ const TAG = ' #[[🤖]]';
 type Block = Record<string, unknown> | null;
 
 /** A stand-in for `logseq.Editor` that records what was written. */
-function fakeEditor(block: Block, opts: { editing?: string; buffer?: string; props?: boolean } = {}) {
+function fakeEditor(
+  block: Block,
+  opts: {
+    editing?: string;
+    buffer?: string;
+    props?: boolean;
+    /** The property is already defined, so defining it again errors. */
+    defineFails?: boolean;
+    /** The host creates the property on demand instead of refusing. */
+    autoCreates?: boolean;
+  } = {},
+) {
   const writes: string[] = [];
   const inserts: string[] = [];
+  const insertOpts: unknown[] = [];
   const properties: Array<[string, unknown]> = [];
+  const defined: string[] = [];
   const editor: EditorApi = {
     async getBlock() {
       return block;
@@ -17,8 +30,9 @@ function fakeEditor(block: Block, opts: { editing?: string; buffer?: string; pro
     async updateBlock(_uuid, content) {
       writes.push(content);
     },
-    async insertBlock(_uuid, content) {
+    async insertBlock(_uuid, content, opts) {
       inserts.push(content);
+      insertOpts.push(opts);
       return null;
     },
     async checkEditing() {
@@ -29,11 +43,20 @@ function fakeEditor(block: Block, opts: { editing?: string; buffer?: string; pro
     },
   };
   if (opts.props !== false) {
+    editor.upsertProperty = async (key) => {
+      if (opts.defineFails) throw new Error('already exists');
+      defined.push(key);
+      return null;
+    };
     editor.upsertBlockProperty = async (_uuid, key, value) => {
+      // A real DB graph refuses this until the property has been defined.
+      if (!defined.includes(key) && !opts.autoCreates) {
+        throw new Error(`Property :${key} doesn't exist yet`);
+      }
       properties.push([key, value]);
     };
   }
-  return { editor, writes, inserts, properties };
+  return { editor, writes, inserts, insertOpts, properties, defined };
 }
 
 describe('isDbGraph', () => {
@@ -81,6 +104,40 @@ describe('FileGraphOps', () => {
     expect(await new FileGraphOps(editor).readContext('u')).toBe('Meeting notes\n\t- Churn rose');
   });
 
+  it('uses the editor buffer for the root while the block is being edited', async () => {
+    const { editor } = fakeEditor(
+      { content: saved, children: [{ content: 'Churn rose' }] },
+      { editing: 'u', buffer: 'Being typed\nowner:: alice' },
+    );
+    expect(await new FileGraphOps(editor).readContext('u')).toBe('Being typed\n\t- Churn rose');
+  });
+
+  it('ignores the editor buffer when a different block is being edited', async () => {
+    const { editor } = fakeEditor({ content: saved }, { editing: 'other', buffer: 'elsewhere' });
+    expect(await new FileGraphOps(editor).readContext('u')).toBe('Meeting notes');
+  });
+
+  // Newer Logseq builds type `content` as optional and put the markdown in `title`.
+  it('falls back to a string title when content is absent', async () => {
+    const { editor, writes } = fakeEditor({ title: 'Notes\nid:: abc', children: [{ title: 'Kid' }] });
+    const ops = new FileGraphOps(editor);
+    expect(await ops.readContext('u')).toBe('Notes\n\t- Kid');
+    await ops.replaceText('u', 'New', TAG);
+    expect(writes).toEqual([`New${TAG}\nid:: abc`]);
+  });
+
+  it('does not mistake an AST title (old builds) for content', async () => {
+    const { editor } = fakeEditor({ content: 'Real', title: ['Paragraph', ['Plain', 'Real']] });
+    expect(await new FileGraphOps(editor).readContext('u')).toBe('Real');
+  });
+
+  it('inserts a child with no positional options (last child by default)', async () => {
+    const { editor, inserts, insertOpts } = fakeEditor({ content: 'x' });
+    await new FileGraphOps(editor).insertChild('u', 'a child');
+    expect(inserts).toEqual(['a child']);
+    expect(insertOpts).toEqual([undefined]);
+  });
+
   it('keeps properties when replacing the text', async () => {
     const { editor, writes } = fakeEditor({ content: saved });
     await new FileGraphOps(editor).replaceText('u', 'New text', TAG);
@@ -120,6 +177,23 @@ describe('DbGraphOps', () => {
   it('prefers the editor buffer while the block is being edited', async () => {
     const { editor } = fakeEditor({ title: 'saved' }, { editing: 'u', buffer: 'being typed' });
     expect(await new DbGraphOps(editor).readText('u')).toBe('being typed');
+  });
+
+  it('uses the editor buffer for the root while the block is being edited', async () => {
+    const { editor } = fakeEditor(
+      { title: 'saved', children: [{ title: 'kid' }] },
+      { editing: 'u', buffer: 'being typed' },
+    );
+    expect(await new DbGraphOps(editor).readContext('u')).toBe('being typed\n\t- kid');
+  });
+
+  it('treats a non-string title as empty rather than leaking it', async () => {
+    const { editor, writes } = fakeEditor({ title: ['Paragraph'], content: 'compat' });
+    const ops = new DbGraphOps(editor);
+    expect(await ops.readText('u')).toBe('compat');
+    expect(await ops.readContext('u')).toBe('compat');
+    await ops.appendText('u', 'more', TAG);
+    expect(writes).toEqual([`compat more${TAG}`]);
   });
 
   it('walks children by title', async () => {
@@ -164,6 +238,34 @@ describe('DbGraphOps', () => {
     expect(writes).toEqual([]);
   });
 
+  // Observed against a real DB graph: upsertBlockProperty fails with
+  // "Property :summarize doesn't exist yet" unless the property is defined first.
+  it('defines the property before putting it on a block', async () => {
+    const { editor, properties, defined } = fakeEditor({ title: 'Meeting notes' });
+    await new DbGraphOps(editor).setProperty('u', 'summarize', 'A summary.', TAG);
+    expect(defined).toEqual(['summarize']);
+    expect(properties).toEqual([['summarize', 'A summary.']]);
+  });
+
+  it('still writes when the property was already defined', async () => {
+    const { editor, properties } = fakeEditor({ title: 'x' }, { defineFails: true, autoCreates: true });
+    await new DbGraphOps(editor).setProperty('u', 'summarize', 'A summary.', TAG);
+    expect(properties).toEqual([['summarize', 'A summary.']]);
+  });
+
+  it('turns a refused property write into actionable advice', async () => {
+    const { editor } = fakeEditor({ title: 'x' }, { defineFails: true });
+    await expect(new DbGraphOps(editor).setProperty('u', 'summarize', 'v', TAG)).rejects.toThrow(
+      /Could not write the "summarize" property.*doesn't exist yet.*"insert"/s,
+    );
+  });
+
+  it('does not tag the block when the property write fails', async () => {
+    const { editor, writes } = fakeEditor({ title: 'x' }, { defineFails: true });
+    await expect(new DbGraphOps(editor).setProperty('u', 'summarize', 'v', TAG)).rejects.toThrow();
+    expect(writes).toEqual([]);
+  });
+
   it('explains itself when the host cannot set properties', async () => {
     const { editor } = fakeEditor({ title: 'Meeting notes' }, { props: false });
     await expect(new DbGraphOps(editor).setProperty('u', 'k', 'v', TAG)).rejects.toThrow(
@@ -181,9 +283,10 @@ describe('DbGraphOps', () => {
     expect(properties).toEqual([]);
   });
 
-  it('inserts children as blocks', async () => {
-    const { editor, inserts } = fakeEditor({ title: 'x' });
+  it('inserts children as blocks with no positional options', async () => {
+    const { editor, inserts, insertOpts } = fakeEditor({ title: 'x' });
     await new DbGraphOps(editor).insertChild('u', 'a child');
     expect(inserts).toEqual(['a child']);
+    expect(insertOpts).toEqual([undefined]);
   });
 });
