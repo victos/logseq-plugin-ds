@@ -1,0 +1,38 @@
+{
+  "name": "logseq-plugin-deepseek-assistant",
+  "version": "1.0.0",
+  "main": "dist/index.html",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "lint": "eslint src test --ext .ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "preinstall": "npx only-allow pnpm"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@logseq/libs": "^0.0.14"
+  },
+  "devDependencies": {
+    "@semantic-release/changelog": "6.0.2",
+    "@semantic-release/exec": "6.0.3",
+    "@semantic-release/git": "10.0.1",
+    "@semantic-release/npm": "9.0.2",
+    "@types/node": "18.15.3",
+    "@typescript-eslint/eslint-plugin": "5.55.0",
+    "@typescript-eslint/parser": "5.55.0",
+    "conventional-changelog-conventionalcommits": "5.0.0",
+    "eslint": "8.36.0",
+    "semantic-release": "20.1.1",
+    "typescript": "4.9.5",
+    "vite": "4.2.3",
+    "vite-plugin-logseq": "1.1.2",
+    "vitest": "0.34.6"
+  },
+  "logseq": {
+    "id": "logseq-plugin-deepseek-assistant",
+    "title": "DeepSeek Assistant",
+    "icon": "./logo.svg"
+  }
+}
