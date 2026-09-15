@@ -84,11 +84,20 @@ A command reads the block you are in **plus everything nested under it**. So thi
 
 sends all four lines to the model, not just the question.
 
-Commands read the block **and everything nested under it**, but they skip anything the plugin
-wrote itself — child blocks carrying the `#[[🤖]]` tag. Without that, running `/Ask AI` and then
-`/Tone: Professional` on the same block would feed the answer back in, and the tone command
-would rewrite the answer instead of the question. If you clear the Tag setting, the plugin can
-no longer recognise its own output and this protection is gone.
+One exception: child blocks carrying the `#[[🤖]]` tag are skipped, along with anything nested
+under them, because the tag is how the plugin recognises its own earlier output. Without this,
+running `/Ask AI` and then `/Tone: Professional` on the same block would feed the answer back
+in, and the tone command would rewrite the answer instead of the question. The rule is only as
+good as the tag:
+
+- The tag is matched as a whole token (`#AI` does not match `#AIDS`), but any child block that
+  contains it is skipped — including one you wrote yourself that quotes the tag, and a nested
+  block the plugin merely rewrote or gave a property to earlier. Delete the tag from a block to
+  have it read again.
+- Only the current Tag setting is recognised. Output written under an earlier tag, or while the
+  Tag setting was empty, is read like any other block — and with the setting cleared the
+  protection is off altogether.
+- The block you run the command in is always read, tag or no tag.
 
 Logseq metadata (`id::`, `collapsed::`, and your own `key:: value` lines) is stripped before
 sending — the model sees your writing, not the plumbing — and is put back afterwards. If you
@@ -110,12 +119,9 @@ On a file graph the property lines are split off before the text is sent, and re
 untouched afterwards. On a DB graph the text can be replaced without touching properties at
 all, so nothing has to be reassembled.
 
-**The DB path is unit tested but has never run against a real DB graph.** It is written against
-the `@logseq/libs` 0.3.4 type definitions and exercised only against a fake editor. Three things
-in particular are unverified: whether `upsertBlockProperty` creates a property that does not
-exist yet, what a DB graph does with the `#[[🤖]]` tag appended to the text (it may turn it into
-a tag entity and drop it from the text), and how `updateBlock` behaves on a block that is being
-edited. Treat it as untested in practice until you have tried it, which is why
+**The DB path is unit tested and has been checked against a real DB graph only through Logseq's
+CLI — the plugin itself has never run inside Logseq on one.** It is written against the
+`@logseq/libs` 0.3.4 type definitions and exercised against a fake editor, which is why
 `marketplace/manifest.json` still declares `supportsDB: false`.
 
 The SDK is bundled with the plugin; what matters is the Logseq build. The DB path needs a build
@@ -127,8 +133,10 @@ the markdown in `title` and no `content`, the file-graph path reads `title` inst
 Two things were checked against a real DB graph (Logseq desktop nightly, via its CLI) rather
 than inferred from type definitions:
 
-- A `#[[🤖]]` tag written into a block's text stays in the text — the DB does not extract it
-  into a separate tag field, so the tag behaviour described above holds on both backends.
+- A `#[[🤖]]` tag written into a block's text stays in the text: the DB records a reference to
+  the `🤖` page but does not move the tag into a separate tag field, and reads the title back
+  with the tag spelled out. So the tag behaviour described above — including skipping tagged
+  children — holds on both backends, as far as the CLI can show.
 - A DB graph refuses to put a property on a block until that property exists
   (`Property :summarize doesn't exist yet`), and then stores it under a namespaced ident of
   its own, not under the name given. `/Summarize` therefore defines the property before
@@ -137,8 +145,10 @@ than inferred from type definitions:
 
 Still unverified, because they need the plugin running inside Logseq rather than the CLI:
 whether `getBlock({includeChildren: true})` nests children the same way on a DB graph, whether
-`insertBlock` appends as the last child (`/Brainstorm` depends on the order), and whether the
-bundled `@logseq/libs` 0.3.x client boots correctly inside an older file-graph Logseq build.
+`insertBlock` appends as the last child (`/Brainstorm` depends on the order), whether a block
+saved from the DB editor still reads back with the tag as text, how `updateBlock` behaves on a
+block that is being edited, and whether the bundled `@logseq/libs` 0.3.x client boots correctly
+inside an older file-graph Logseq build.
 
 ## Settings
 
@@ -152,6 +162,10 @@ bundled `@logseq/libs` 0.3.x client boots correctly inside an older file-graph L
 | **Custom Prompts** | off | Your own commands — see below |
 
 Changes to the first five apply to the next command you run; no reload needed.
+
+A changed default does not reach an existing install: Logseq keeps the values already stored, so
+if you set the plugin up before the default moved to `0.3`, your Temperature is still `1.0`
+until you change it.
 
 ### Which model?
 
@@ -230,6 +244,7 @@ Every failure shows up as a Logseq notification. The common ones:
 | `The block is empty — nothing to send to DeepSeek.` | The block (and its children) had no text after removing properties |
 | `The block was deleted while DeepSeek was answering.` | The answer was discarded. Run the command again on the new block |
 | `This Logseq version cannot set block properties on a DB graph. Update Logseq, or change the prompt’s "output" away from "property".` | DB graphs only: this Logseq build has no `upsertBlockProperty`. Update Logseq, or give the prompt another `output` |
+| `Could not write the "…" property on this DB graph: …` | DB graphs only: the property could not be defined or written; the message says why. Create the property in Logseq first, or give the prompt `output: insert` |
 | `DeepSeek Assistant ignored N custom prompt(s): …` | One of your custom prompts is malformed; the message names it |
 | `Custom prompts changed. Reload the plugin to register the new slash commands.` | You added, renamed or removed a custom prompt |
 
@@ -238,7 +253,7 @@ Still stuck? Open the Logseq developer console (`Ctrl+Shift+I`) — the full err
 ## For developers
 
 ```sh
-pnpm test    # 150 unit tests (vitest)
+pnpm test    # 156 unit tests (vitest)
 pnpm lint    # eslint over src/ and test/
 pnpm build   # tsc + vite → dist/
 ```

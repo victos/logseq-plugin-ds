@@ -79,10 +79,16 @@ AI 写的内容都会带上 `#[[🤖]]` 标签，方便日后检索：被替换�
 
 四行会一起发给模型，而不是只发那个问题。
 
-命令会读取**当前块及其下嵌套的所有内容**，但会跳过插件自己写的东西 —— 也就是带 `#[[🤖]]`
-标签的子块。否则在同一个块上先跑 `/Ask AI` 再跑 `/Tone: Professional`，答案会被当成素材喂回去，
-语气命令改写的就成了那个答案而不是原本的问题。**如果你把 Tag 设置清空，插件就认不出自己的输出，
-这层保护也就没了。**
+有一个例外：带 `#[[🤖]]` 标签的子块会被跳过，连同它们下面嵌套的内容一起 —— 插件就是靠这个
+标签认出自己先前的输出的。否则在同一个块上先跑 `/Ask AI` 再跑 `/Tone: Professional`，答案会被
+当成素材喂回去，语气命令改写的就成了那个答案而不是原本的问题。这条规则的可靠程度取决于标签本身：
+
+- 标签按完整词匹配（`#AI` 不会匹配到 `#AIDS`），但只要子块里出现了这个标签就会被跳过 ——
+  包括你自己写的、只是引用了这个标签的子块，也包括插件早先只是改写过或加过属性的嵌套块。
+  把标签从块里删掉，它就会重新被读取。
+- 只认当前的 Tag 设置。用旧标签写出的内容，或者 Tag 留空期间写出的内容，都和普通块一样被读取；
+  Tag 清空之后，这层保护也就完全没有了。
+- 你执行命令的那个块本身永远会被读取，带不带标签都一样。
 
 Logseq 的元数据（`id::`、`collapsed::`，以及你自己写的 `key:: value` 行）在发送前会被剥掉 ——
 模型看到的是你的正文，不是这些管道 —— 写回时再放回去。如果你在块里还没敲完就执行了命令，
@@ -102,10 +108,8 @@ Logseq 的两种存储后端对「块」的建模完全不同，插件会自动�
 文件图上，属性行会在发送前被剥离、写回时原样恢复；DB 图上正文和属性本来就是分开的，替换文本
 根本碰不到属性，也就无需重组。
 
-**DB 那条路径有单元测试，但从未在真实的 DB 图上跑过。** 它是照着 `@logseq/libs` 0.3.4 的类型定义写的，
-测试时对接的也只是一个假的编辑器对象。有三点尤其没有验证过：`upsertBlockProperty` 遇到尚不存在的属性会不会
-自动创建；DB 图会怎么处理追加在正文末尾的 `#[[🤖]]` 标签（有可能被转成标签实体、从正文里去掉）；
-以及对正在编辑中的块调用 `updateBlock` 是什么效果。在你亲自验证之前，请当它是未经实测的 ——
+**DB 那条路径有单元测试，也只通过 Logseq 的 CLI 对着真实 DB 图验证过 —— 插件本身从未在 DB 图里
+真正跑过。** 它是照着 `@logseq/libs` 0.3.4 的类型定义写的，测试时对接的是一个假的编辑器对象，
 这也是 `marketplace/manifest.json` 里 `supportsDB` 仍为 `false` 的原因。
 
 SDK 是随插件一起打包的，真正起决定作用的是 Logseq 本身的版本。DB 路径要求 Logseq 提供
@@ -115,16 +119,18 @@ SDK 是随插件一起打包的，真正起决定作用的是 Logseq 本身的�
 
 有两点是**对着真实 DB 图实测**的（Logseq desktop nightly，走它自带的 CLI），而不是从类型定义推断的：
 
-- 写进块正文的 `#[[🤖]]` 标签**会留在正文里** —— DB 不会把它抽成独立的 tag 字段，所以上面描述的
-  标签行为在两种后端上都成立。
+- 写进块正文的 `#[[🤖]]` 标签**会留在正文里**：DB 会记录一条指向 `🤖` 页面的引用，但不会把标签
+  抽成独立的 tag 字段，读回来的标题里标签仍按原样拼写。所以上面描述的标签行为 —— 包括跳过带
+  标签的子块 —— 在 CLI 能验证的范围内，两种后端上都成立。
 - **DB 图不允许给块加一个尚不存在的属性**（报错原文 `Property :summarize doesn't exist yet`），
   而且属性最终存储用的是它自己生成的带命名空间 ident，不是你传进去的名字。所以 `/Summarize`
   会先定义属性再写入；万一仍被拒绝，你会看到明确提示，并建议改用 `output: insert`。
 
 仍未验证的部分 —— 这些需要插件真正跑在 Logseq 里，CLI 验不了：DB 图上
 `getBlock({includeChildren: true})` 的子块嵌套结构是否一致、`insertBlock` 是否追加为最后一个
-子块（`/Brainstorm` 的顺序依赖它）、以及打包进来的 `@logseq/libs` 0.3.x 客户端能否在更老的
-文件图版 Logseq 里正常启动。
+子块（`/Brainstorm` 的顺序依赖它）、在 DB 编辑器里保存过的块读回来时标签是否仍是文本、
+对正在编辑中的块调用 `updateBlock` 是什么效果，以及打包进来的 `@logseq/libs` 0.3.x 客户端能否
+在更老的文件图版 Logseq 里正常启动。
 
 ## 设置项
 
@@ -138,6 +144,9 @@ SDK 是随插件一起打包的，真正起决定作用的是 Logseq 本身的�
 | **Custom Prompts** | 关闭 | 自定义命令，见下文 |
 
 前五项改完即生效，下一次执行命令时就会用新值，不需要重载插件。
+
+默认值的变化不会影响已有安装：Logseq 会沿用已经保存的设置值。如果你是在默认值改成 `0.3` 之前
+装的插件，Temperature 仍然是 `1.0`，想用新默认值需要自己改一下。
 
 ### 该用哪个模型
 
@@ -213,6 +222,7 @@ SDK 是随插件一起打包的，真正起决定作用的是 Logseq 本身的�
 | `The block is empty — nothing to send to DeepSeek.` | 这个块（连同子块）去掉属性之后没有正文 |
 | `The block was deleted while DeepSeek was answering.` | 答案已被丢弃。在新的块上再执行一次命令 |
 | `This Logseq version cannot set block properties on a DB graph. Update Logseq, or change the prompt’s "output" away from "property".` | 只在 DB 图上出现：这个版本的 Logseq 没有 `upsertBlockProperty`。升级 Logseq，或者给这条命令换一种 `output` |
+| `Could not write the "…" property on this DB graph: …` | 只在 DB 图上出现：属性没能定义或写入，提示里会说明原因。先在 Logseq 里创建这个属性，或者把这条命令的 `output` 改成 `insert` |
 | `DeepSeek Assistant ignored N custom prompt(s): …` | 有自定义命令配置写坏了，提示里会指出是哪条 |
 | `Custom prompts changed. Reload the plugin to register the new slash commands.` | 你新增、重命名或删除了自定义命令 |
 
@@ -221,7 +231,7 @@ SDK 是随插件一起打包的，真正起决定作用的是 Logseq 本身的�
 ## 开发者信息
 
 ```sh
-pnpm test    # 150 个单元测试（vitest）
+pnpm test    # 156 个单元测试（vitest）
 pnpm lint    # 对 src/ 和 test/ 跑 eslint
 pnpm build   # tsc + vite，产物在 dist/
 ```

@@ -52,10 +52,10 @@ const settings: SettingSchemaDesc[] = [
     type: 'number',
     title: 'Temperature',
     description:
-      'Sampling temperature, 0.0 - 2.0. Low keeps the answer close to your own ' +
-      'text, which is what most of these commands want; at 1.0 a Chinese block ' +
-      'was observed coming back in English. Raise it towards 1.3 if you want ' +
-      'Brainstorm or Ask AI to range wider. Ignored by deepseek-reasoner.',
+      'Sampling temperature, 0.0 - 2.0. Low values keep the answer close to your ' +
+      'own text, which suits the rewriting commands (Polish, Shorten, Tone). Raise ' +
+      'it towards 1.3 if you want Brainstorm or Ask AI to range wider. Ignored by ' +
+      'deepseek-reasoner.',
     default: SETTING_DEFAULTS.temperature,
   },
   {

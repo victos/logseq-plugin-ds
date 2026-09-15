@@ -73,13 +73,7 @@ function isBlock(value: unknown): value is BlockLike {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-/**
- * Flattens a block and its descendants into the text sent to the model:
- * the root's text, then each child as an indented `- ` item. Metadata is
- * dropped: `textOf` decides how one block's prose is extracted, which differs
- * between file graphs (strip `key:: value` lines) and DB graphs (use `title`).
- * Children carrying `excludeTag` are this plugin's own output and are skipped.
- */
+/** Prose of one file-graph block: its content minus the `key:: value` lines. */
 export function fileText(block: BlockLike): string {
   return splitProperties(blockContent(block)).body;
 }
@@ -97,13 +91,25 @@ export function blockContent(block: BlockLike): string {
   return '';
 }
 
+/**
+ * Flattens a block and its descendants into the text sent to the model:
+ * the root's text, then each child as an indented `- ` item. Metadata is
+ * dropped: `textOf` decides how one block's prose is extracted, which differs
+ * between file graphs (strip `key:: value` lines) and DB graphs (use `title`).
+ *
+ * A child carrying `excludeTag` is treated as this plugin's own earlier output
+ * and is left out together with its subtree: feeding an `/Ask AI` answer back
+ * in would make the next command rewrite the answer instead of the question.
+ * The root is never skipped — it carries the tag itself once it has been
+ * rewritten in place. The tag can only say "the plugin touched this", so a
+ * nested block the plugin rewrote or tagged with a property is skipped too.
+ */
 export function blockToText(
   block: BlockLike,
   textOf: (block: BlockLike) => string = fileText,
   excludeTag = '',
 ): string {
   const lines = [textOf(block)];
-  const marker = excludeTag.trim();
 
   const walk = (children: unknown, level: number) => {
     if (!Array.isArray(children)) {
@@ -114,11 +120,7 @@ export function blockToText(
         continue;
       }
       const body = textOf(child);
-      // A child carrying the AI tag is this plugin's own earlier output. Feeding
-      // it back would make the next command rewrite the answer instead of the
-      // question — so the whole branch is left out. The root is never skipped:
-      // it carries the tag too once it has been rewritten in place.
-      if (marker && body.includes(marker)) {
+      if (hasTag(body, excludeTag)) {
         continue;
       }
       if (body) {
@@ -166,10 +168,29 @@ export function tagSuffix(tag: string | undefined | null): string {
   return name ? ` #${name}` : '';
 }
 
+/**
+ * The tag as a whole-token pattern, or `undefined` for a blank tag. Matching
+ * the bare string would make `#AI` hit `#AIDS`, `#AI-notes` and `#AI/sub`, so
+ * the tag must not run straight into another tag character.
+ */
+function tagPattern(tag: string, flags = 'u'): RegExp | undefined {
+  const token = tag.trim();
+  if (!token) {
+    return undefined;
+  }
+  const escaped = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`${escaped}(?![\\p{L}\\p{N}_/-])`, flags);
+}
+
+/** Whether `text` carries `tag` as a whole token (`''` never does). */
+export function hasTag(text: string, tag: string): boolean {
+  return tagPattern(tag)?.test(text) ?? false;
+}
+
 /** Appends the tag to the end of `text` unless it is already present. */
 export function withTag(text: string, tag: string): string {
   const token = tag.trim();
-  if (!token || text.includes(token)) {
+  if (!token || hasTag(text, tag)) {
     return text;
   }
   return text ? `${text}${tag}` : token;
@@ -177,8 +198,8 @@ export function withTag(text: string, tag: string): string {
 
 /** Removes the tag token from text before it is sent to the model. */
 export function stripTag(text: string, tag: string): string {
-  const token = tag.trim();
-  return token ? text.split(token).join('').replace(/[ \t]+$/gm, '') : text;
+  const pattern = tagPattern(tag, 'gu');
+  return pattern ? text.replace(pattern, '').replace(/[ \t]+$/gm, '') : text;
 }
 
 /**

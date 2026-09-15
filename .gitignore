@@ -3,3 +3,7 @@ node_modules
 dist
 dist-ssr
 *.local
+
+# Extracted Logseq app bundles (investigation scratch, never part of the plugin)
+main.js
+lsplugin.core.js

@@ -7,6 +7,7 @@ import {
   composeProperty,
   composeReplace,
   fileText,
+  hasTag,
   isHiddenProperty,
   joinBlock,
   mergeContent,
@@ -149,6 +150,36 @@ describe('withTag / stripTag', () => {
   it('removes the tag from model input without leaving trailing spaces', () => {
     expect(stripTag('line one #[[🤖]]\n\t- child #[[🤖]]', TAG)).toBe('line one\n\t- child');
     expect(stripTag('untouched', '')).toBe('untouched');
+  });
+
+  // A short tag must not be found inside a longer one: `#AI` is not `#AIDS`.
+  it('treats the tag as a whole token', () => {
+    expect(withTag('Read up on #AIDS research', ' #AI')).toBe('Read up on #AIDS research #AI');
+    expect(withTag('Filed under #AI-notes', ' #AI')).toBe('Filed under #AI-notes #AI');
+    expect(stripTag('Read up on #AIDS research #AI', ' #AI')).toBe('Read up on #AIDS research');
+    expect(stripTag('first, then #AI/sub #AI', ' #AI')).toBe('first, then #AI/sub');
+  });
+});
+
+describe('hasTag', () => {
+  it('finds the tag anywhere in the text, but only as a whole token', () => {
+    expect(hasTag('answer #[[🤖]]', TAG)).toBe(true);
+    expect(hasTag('#[[🤖]] answer', TAG)).toBe(true);
+    expect(hasTag('done #AI.', ' #AI')).toBe(true);
+    expect(hasTag('#AI', '#AI')).toBe(true);
+    expect(hasTag('#AIDS #AI-notes #AI/sub #AI_2', ' #AI')).toBe(false);
+    expect(hasTag('answer', TAG)).toBe(false);
+  });
+
+  it('never matches a blank tag', () => {
+    expect(hasTag('anything', '')).toBe(false);
+    expect(hasTag('anything', '   ')).toBe(false);
+  });
+
+  it('escapes regex metacharacters in the tag', () => {
+    expect(hasTag('x #a.b', ' #a.b')).toBe(true);
+    expect(hasTag('x #aXb', ' #a.b')).toBe(false);
+    expect(hasTag('x #(ai)', ' #(ai)')).toBe(true);
   });
 });
 
@@ -321,11 +352,26 @@ describe('AI output is not fed back in', () => {
     expect(blockToText(block, fileText, '')).toBe(`Root\n\t- An answer${TAG}`);
   });
 
+  // The tag has to be looked for in the prose the DB extractor returns (`title`),
+  // not in a stale `content` that happens to be present.
   it('works the same on a DB graph', () => {
     const block = {
       title: "Greetings. What is today's date?",
-      children: [{ title: `Today's date is September 15, 2026.${TAG}` }],
+      children: [{ title: `Today's date is September 15, 2026.${TAG}`, content: 'Today is a day.' }],
     };
     expect(blockToText(block, dbText, TAG)).toBe("Greetings. What is today's date?");
+  });
+
+  it('recognises the tag wherever it sits in the child, not only as a trailing suffix', () => {
+    const block = { content: 'Root', children: [{ content: '#[[🤖]] moved to the front' }] };
+    expect(blockToText(block, fileText, TAG)).toBe('Root');
+  });
+
+  it('does not drop a child that only contains a longer tag', () => {
+    const block = {
+      content: 'Root',
+      children: [{ content: 'Read up on #AIDS research' }, { content: 'An answer #AI' }],
+    };
+    expect(blockToText(block, fileText, ' #AI')).toBe('Root\n\t- Read up on #AIDS research');
   });
 });
