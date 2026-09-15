@@ -50,6 +50,13 @@ async function runPrompt(definition: IPrompt, uuid: string) {
     },
   ];
 
+  // One line per run, so "the wrong thing happened" can be traced to the command
+  // that actually ran and the text it actually saw, without guessing.
+  console.debug(
+    `[DeepSeek Assistant] /${definition.name} -> ${definition.output}`,
+    { model: definition.model || model || SETTING_DEFAULTS.model, messages },
+  );
+
   const pending = await logseq.UI.showMsg(`${definition.name}…`, 'info', { timeout: 0 });
   let result: ChatResult;
   try {

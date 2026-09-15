@@ -153,12 +153,47 @@ describe('built-in prompts', () => {
     expect(factCheck!.prompt).toMatch(/no factual errors/i);
   });
 
+  // Reported in use: every command answered the question in the block instead of
+  // transforming it. The instruction alone was not enough — the model has to be
+  // told the input is material, not a request.
+  it('transform commands tell the model not to answer the text', () => {
+    const transforms = PRESETS.filter(
+      (p) => p.output === PromptOutputType.replace || p.name === 'Summarize',
+    );
+    expect(transforms.map((p) => p.name).sort()).toEqual([
+      'Expand',
+      'Polish',
+      'Shorten',
+      'Summarize',
+      'Tone: Casual',
+      'Tone: Confident',
+      'Tone: Friendly',
+      'Tone: Professional',
+    ]);
+    for (const prompt of transforms) {
+      expect(prompt.prompt).toMatch(/not a request addressed to you/i);
+      expect(prompt.prompt).toMatch(/never answer them/i);
+    }
+  });
+
+  // Ask AI, Explain, Fact Check and Brainstorm are supposed to respond to the
+  // content, so the guard must not leak onto them.
+  it('response commands are left free to respond', () => {
+    const responders = PRESETS.filter(
+      (p) => p.output !== PromptOutputType.replace && p.name !== 'Summarize',
+    );
+    expect(responders.map((p) => p.name)).toEqual(['Ask AI', 'Explain', 'Fact Check', 'Brainstorm']);
+    for (const prompt of responders) {
+      expect(prompt.prompt).not.toMatch(/not a request addressed to you/i);
+    }
+  });
+
   // The registration list is written by hand, so a new prompt file that nobody
   // added to it would otherwise ship as a dead file. Load the files themselves
   // rather than what index.ts chose to re-export.
   it('the registered list covers every file in src/prompts/', () => {
     const modules = import.meta.glob<Record<string, unknown>>('../src/prompts/*.ts', { eager: true });
-    const files = Object.keys(modules).filter((path) => !/\/(index|type)\.ts$/.test(path));
+    const files = Object.keys(modules).filter((path) => !/\/(index|type|shared)\.ts$/.test(path));
     expect(files.length).toBeGreaterThan(0);
 
     const fromFiles = files
