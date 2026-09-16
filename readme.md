@@ -45,6 +45,7 @@ Twelve commands come built in, plus one that needs a search key. Type `/` in a b
 | `/Expand` | Fills it out with more detail | Replaces the block text |
 | `/Explain` | Explains the text or code | New child block |
 | `/Fact Check` | Flags statements it believes are objectively false | One child block per error |
+| `/Ask Online` | Looks the answer up and cites its sources — **only when a search key is set** | New child block |
 | `/Verify Online` | Searches the web and cites a source for each verdict — **only when a search key is set** | One child block per claim |
 | `/Brainstorm` | Suggests related ideas | One child block per idea |
 | `/Tone: Friendly` `/Tone: Confident` `/Tone: Casual` `/Tone: Professional` | Rewrites in that tone | Replaces the block text |
@@ -204,6 +205,14 @@ the plugin refuses instead (`This block has no text of its own to rewrite…`); 
 the children.
 
 Because one command can now touch several blocks, undo may take more than one Ctrl+Z.
+
+`/Ask AI` answers from the model's own knowledge, which has a cutoff — asked which DeepSeek
+model is current it named one two versions old, and asked for today's weather it can only
+suggest a weather app. **`/Ask Online`** looks the answer up instead and lists the URLs it
+relied on, says which date, time zone or place its answer applies to, and gives the range when
+the sources disagree rather than picking one. It needs the same search key as `/Verify Online`
+and takes roughly 5-20 seconds against about one for `/Ask AI`, so both are kept: ask offline
+for anything timeless, online for anything that moves.
 
 ### Checking against sources: `/Verify Online`
 
@@ -409,7 +418,7 @@ Source layout:
 | `src/prompts/` | The built-in prompts, one per file; `index.ts` sets the order |
 
 `@logseq/libs` is the only runtime dependency; every API call is a plain `fetch`. Bundle is
-about 48 kB gzipped.
+about 50 kB gzipped.
 
 ### What changed from the original
 

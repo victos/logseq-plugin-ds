@@ -103,9 +103,13 @@ describe('resolvePrompts', () => {
   it('offers a search-gated command only once a key is configured', () => {
     const names = (searchAvailable: boolean) =>
       resolvePrompts(PRESETS, undefined, searchAvailable).prompts.map((p) => p.name);
-    expect(names(false)).not.toContain('Verify Online');
-    expect(names(true)).toContain('Verify Online');
-    expect(names(true).length).toBe(names(false).length + 1);
+    const gated = PRESETS.filter((p) => p.requiresSearch).map((p) => p.name);
+    expect(gated).toEqual(['Ask Online', 'Verify Online']);
+    for (const name of gated) {
+      expect(names(false)).not.toContain(name);
+      expect(names(true)).toContain(name);
+    }
+    expect(names(true).length).toBe(names(false).length + gated.length);
   });
 
   it('keeps the last of two custom prompts with the same name', () => {
@@ -194,6 +198,7 @@ describe('built-in prompts', () => {
     );
     expect(responders.map((p) => p.name)).toEqual([
       'Ask AI',
+      'Ask Online',
       'Explain',
       'Fact Check',
       'Verify Online',
@@ -218,6 +223,18 @@ describe('built-in prompts', () => {
     expect(verify!.prompt).toMatch(/Use ❌ only when the sources contradict/i);
   });
 
+  // /Ask AI answers from a knowledge cutoff: asked which DeepSeek model is
+  // current it named one two versions old. /Ask Online must look it up instead.
+  it('Ask Online searches rather than answering from memory, and cites sources', () => {
+    const ask = PRESETS.find((p) => p.name === 'Ask Online');
+    expect(ask).toBeDefined();
+    expect(ask!.requiresSearch).toBe(true);
+    expect(ask!.output).toBe(PromptOutputType.insert);
+    expect(ask!.prompt).toMatch(/Do not answer from memory/i);
+    expect(ask!.prompt).toMatch(/list the sources you used/i);
+    expect(ask!.prompt).toMatch(/if the sources disagree/i);
+  });
+
   // The registration list is written by hand, so a new prompt file that nobody
   // added to it would otherwise ship as a dead file. Load the files themselves
   // rather than what index.ts chose to re-export.
@@ -234,7 +251,7 @@ describe('built-in prompts', () => {
       );
     expect(fromFiles).toHaveLength(files.length);
     expect(new Set(PRESETS)).toEqual(new Set(fromFiles));
-    expect(PRESETS).toHaveLength(13);
+    expect(PRESETS).toHaveLength(14);
   });
 });
 

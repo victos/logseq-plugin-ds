@@ -1,4 +1,5 @@
 import { AskAI } from './ask-ai';
+import { AskOnline } from './ask-online';
 import { Brainstorm } from './brainstorm';
 import { Expand } from './expand';
 import { Explain } from './explain';
@@ -14,7 +15,7 @@ import { ToneProfessional } from './tone-professional';
 import { IPrompt } from './type';
 
 export {
-  AskAI, Brainstorm, Expand, Explain, FactCheck, Polish, Shorten, Summarize,
+  AskAI, AskOnline, Brainstorm, Expand, Explain, FactCheck, Polish, Shorten, Summarize,
   ToneCasual, ToneConfident, ToneFriendly, ToneProfessional, VerifyOnline,
 };
 
@@ -25,6 +26,7 @@ export {
  */
 export const presetPrompts: IPrompt[] = [
   AskAI,
+  AskOnline,
   Summarize,
   Polish,
   Shorten,

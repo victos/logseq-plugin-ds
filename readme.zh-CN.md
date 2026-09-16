@@ -43,6 +43,7 @@ pnpm install && pnpm build
 | `/Expand` | 扩写，补充细节 | 替换块内容 |
 | `/Explain` | 解释这段文字或代码 | 新建子块 |
 | `/Fact Check` | 指出它认为客观上不成立的说法 | 每处错误一个子块 |
+| `/Ask Online` | 联网查出答案并附来源 —— **只在配置了搜索 key 时出现** | 新建子块 |
 | `/Verify Online` | 联网搜索，每条判断都附来源 —— **只在配置了搜索 key 时出现** | 每条待核查说法一个子块 |
 | `/Brainstorm` | 围绕主题发散想法 | 每条想法一个子块 |
 | `/Tone: Friendly` `/Tone: Confident` `/Tone: Casual` `/Tone: Professional` | 改成对应语气 | 替换块内容 |
@@ -168,6 +169,13 @@ DB 图上插件不去查询反向引用，所以**那里一个都不删**。二�
 所以插件会直接拒绝（`This block has no text of its own to rewrite…`），请到某个子块里执行。
 
 由于一条命令现在可能改动多个块，撤销可能需要按多次 Ctrl+Z。
+
+`/Ask AI` 靠模型自己的知识作答，而那有截止日期 —— 问它 DeepSeek 最新的模型是哪个，它说的是两个大版本
+之前的那个；问今天天气，它只能建议你去装个天气 App。**`/Ask Online`** 会真的去查，列出所依据的
+网址，说明答案对应的是哪个日期、哪个时区、哪个地方，来源有分歧时给出区间而不是挑一个。
+
+它和 `/Verify Online` 用同一个搜索 key，耗时大约 5~20 秒，而 `/Ask AI` 约 1 秒 —— 所以两条都保留：
+问不随时间变的事用离线那条，问会变的事用联网这条。
 
 ### 对着来源核查：`/Verify Online`
 
@@ -354,7 +362,7 @@ pnpm build   # tsc + vite，产物在 dist/
 | `src/parsers.ts` | 把回复解析成列表或结构化字段 |
 | `src/prompts/` | 内置 prompt，一个文件一条；`index.ts` 决定顺序 |
 
-运行时依赖只有 `@logseq/libs`，每次 API 调用都只是一次普通的 `fetch`。产物 gzip 后约 48 kB。
+运行时依赖只有 `@logseq/libs`，每次 API 调用都只是一次普通的 `fetch`。产物 gzip 后约 50 kB。
 
 ### 相比原项目改了什么
 
