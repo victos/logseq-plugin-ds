@@ -12,7 +12,14 @@ import { IPrompt, PromptOutputType } from './type';
  * 0/3. The "no errors found" sentence was English on German input 0/3 with
  * "in the language of the text" alone; naming the instructions' language as
  * the one *not* to use holds German 3/3 and Chinese 3/3 on a question, 1/3 on
- * a Chinese statement — that cell is the remaining weak spot.
+ * a Chinese statement — that cell is the remaining weak spot (0/3 on the
+ * 2026-09-16 full run: "No factual errors were found." in English).
+ *
+ * The precision rule is stated twice on purpose. With the first sentence alone
+ * the Chinese true-claim cell was ❌ 99.97 °C 3/3; with the second it is no
+ * finding 5/6 over two full runs (2026-09-16) — reduced, not gone. Merging the
+ * two into one sentence was tried and measured (5 samples): the nitpick came
+ * back, 2/5. Leave both.
  */
 export const FactCheck: IPrompt = {
   name: 'Fact Check',

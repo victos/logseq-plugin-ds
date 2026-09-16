@@ -5,7 +5,7 @@
 ## 构建与测试
 
 ```sh
-pnpm test       # 348 个测试（vitest），其中一个是覆盖块写入流程的属性测试
+pnpm test       # 349 个测试（vitest），其中一个是覆盖块写入流程的属性测试
 pnpm lint       # 对 src/、test/ 和 live/ 跑 eslint
 pnpm build      # tsc + vite，产物在 dist/
 pnpm test:live  # 拿真实 API 跑 prompt —— 要花钱、要 key，见下文

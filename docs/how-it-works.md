@@ -37,8 +37,8 @@ definitions:
 
 - A `#[[🤖]]` tag written into a block's text stays in the text: the DB records a reference to
   the `🤖` page but does not move the tag into a separate tag field, and reads the title back
-  with the tag spelled out. So the tag behaviour described above — including skipping tagged
-  children — holds on both backends.
+  with the tag spelled out. So the tag behaviour described in the readme under *Giving it
+  context* — including skipping tagged children — holds on both backends.
 - A title that ends with a code fence and then the tag on its own line is stored exactly so;
   nothing folds the tag back onto the fence line.
 - A DB graph refuses to put a property on a block until that property exists
@@ -46,6 +46,18 @@ definitions:
   its own, not under the name given. `/Summarize` therefore defines the property before
   writing it, and if the write is still refused you get a message saying so and suggesting
   `output: insert` instead.
+
+The first of those was re-checked on 2026-09-16 (Logseq CLI revision `a60c12d`, DB schema
+65.33, `@logseq/libs` 0.3.4 bundled) on a throwaway DB graph, because everything the plugin does
+with the tag rests on it. `#[[🤖]]`, a plain `#AI` and a bare `#🤖` all came back verbatim in
+`:block/title`, before and after the block's text was edited, and whether or not `AI` existed as
+a tag; none of them was moved into `:block/tags`. The one form that does live in `:block/tags`
+and is missing from the title is a tag set through the tags property itself (the CLI's
+`--update-tags`; in Logseq, the tag picker) — the plugin never writes one that way, so
+`hasTag` keeps seeing exactly what `withTag` wrote. Two things this check cannot say: it went
+through the CLI's outliner, not the editor inside Logseq, and editing the text through the
+CLI dropped the block's `:block/refs` entry for `🤖` while the tag text stayed — so the `🤖`
+page may not list every tagged block. The plugin does not rely on that reference.
 
 The SDK is bundled with the plugin; what matters is the Logseq build. The DB path needs a build
 that exposes `checkCurrentIsDbGraph` and `upsertBlockProperty`. On older builds, where
@@ -125,7 +137,7 @@ searches instead, and every verdict it writes carries the URL it rests on:
 
 `/Verify Online` only checks what the text actually asserts. A block that is a question, a
 heading, a note to yourself, a piece of code or an opinion has nothing to verify, and it says so in
-one line rather than inventing claims to check. Measured with the live suite (below): that line is
+one line rather than inventing claims to check. Measured with the [live suite](./development.md#changing-a-prompt-run-the-live-suite): that line is
 in the block's language every time for English and German but only about half the time for
 Chinese, an opinion still gets a `❓` line instead in roughly one run in four, and a one-line
 personal note ("a helper I wrote yesterday") is sometimes treated as an unverifiable claim. A claim the sources agree with gets a ✅, not a ❌ with the source

@@ -31,8 +31,8 @@ pnpm install && pnpm build
 ## 内置命令
 
 插件自带十二条命令，另有两条需要搜索 key 才启用。在块里输入 `/` 然后打名字就能找到。
-![斜杠菜单里的插件命令](./docs/menu.png)
 
+![斜杠菜单里的插件命令](./docs/menu.png)
 
 | 命令 | 作用 | 结果写到哪 |
 | --- | --- | --- |
@@ -106,7 +106,7 @@ Logseq 的元数据（`id::`、`collapsed::`，以及你自己写的 `key:: valu
 | **Temperature** | `0.3` | 回答贴合原文的程度。改写类任务宜低；想让 Brainstorm 或 Ask AI 放开一些可以调到 `1.3` 左右 |
 | **Tag** | `[[🤖]]` | 给 AI 产出打的标签。填的时候**不要**带 `#`；留空则不打标签 |
 | **Web Search API Key** | *(空)* | 可选。[Tavily](https://tavily.com) 的 key，用于启用 `/Ask Online`、`/Verify Online` 以及任何带 `"search": true` 的自定义命令 |
-| **Custom Prompts** | 关闭 | 自定义命令，见下文 |
+| **Custom Prompts** | 关闭 | 自定义命令，见[自定义命令](./docs/custom-prompts.zh-CN.md) |
 
 前五项改完即生效，下一次执行命令时就会用新值，不需要重载插件。某一项被清空 —— 哪怕只剩几个空格 ——
 就算没填，会退回默认值。Web Search API Key 则不同：它决定联网命令是否注册，所以填入或清空

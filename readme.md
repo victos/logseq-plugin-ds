@@ -118,7 +118,7 @@ last saved version.
 | **Temperature** | `0.3` | How closely the answer sticks to your text. Low is right for rewriting; raise it towards `1.3` for Brainstorm or Ask AI |
 | **Tag** | `[[🤖]]` | Added to AI output. Write it without the `#`; leave empty to turn tagging off |
 | **Web Search API Key** | *(empty)* | Optional. A [Tavily](https://tavily.com) key; enables `/Ask Online`, `/Verify Online` and any custom prompt with `"search": true` |
-| **Custom Prompts** | off | Your own commands — see below |
+| **Custom Prompts** | off | Your own commands — see [Writing your own commands](./docs/custom-prompts.md) |
 
 Changes to the first five apply to the next command you run; no reload needed. A field you
 have cleared — even to a few spaces — counts as unset and falls back to its default. The Web

@@ -3,7 +3,7 @@
  * The behavioural suite for the prompts: the real prompts, the live DeepSeek
  * API (and Tavily for the searching commands), and properties of what comes
  * back. It costs money and needs keys, so it is not part of `pnpm test`; run
- * `pnpm test:live`. The readme's "For developers" section lists the knobs.
+ * `pnpm test:live`. `docs/development.md` lists the knobs.
  *
  * Every cell — command × input kind × input language — is run several times,
  * because one run misled earlier rounds more than once. The counts are

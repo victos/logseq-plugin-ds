@@ -5,7 +5,7 @@
 ## Building and testing
 
 ```sh
-pnpm test       # 348 tests (vitest), one of them a property-based harness over the block-writing pipeline
+pnpm test       # 349 tests (vitest), one of them a property-based harness over the block-writing pipeline
 pnpm lint       # eslint over src/, test/ and live/
 pnpm build      # tsc + vite → dist/
 pnpm test:live  # the prompts against the live API — costs money, needs keys; see below
