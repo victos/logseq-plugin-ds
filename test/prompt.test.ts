@@ -137,6 +137,11 @@ describe('resolvePrompts', () => {
     expect(problems).toEqual(['"X" has an invalid "search" ("yes"); it must be true or false']);
   });
 
+  it('search: null is the same as leaving it out, like a null "format"', () => {
+    const result = validateCustomPrompt({ name: 'X', prompt: 'p', output: 'insert', search: null }, 0);
+    expect(result).toEqual({ prompt: { name: 'X', prompt: 'p', output: 'insert' } });
+  });
+
   it('search: false is the same as leaving it out', () => {
     const off = { name: 'X', prompt: 'p {{text}}', output: 'insert', search: false };
     const { prompts, problems } = resolvePrompts(PRESETS, { enable: true, prompts: [off] }, false);
@@ -171,6 +176,14 @@ describe('built-in prompts', () => {
 
   it('all reply in the language of the source text', () => {
     for (const prompt of PRESETS) {
+      if (prompt.name === 'Ask Online') {
+        // Seen live: with SAME_LANGUAGE in its system prompt this command answered
+        // English questions in Chinese on every run, and held the language once the
+        // sentence was moved into its own prompt. It must not quietly get it back.
+        expect(prompt.system).not.toMatch(/same language as the text you are given/i);
+        expect(prompt.prompt).toMatch(/in the same language as the text above/i);
+        continue;
+      }
       expect(prompt.system).toMatch(/same language as the text you are given/i);
     }
   });
@@ -253,7 +266,9 @@ describe('built-in prompts', () => {
     expect(verify).toBeDefined();
     expect(verify!.prompt).toMatch(/nothing to verify/i);
     expect(verify!.prompt).toMatch(/never invent a claim/i);
-    expect(verify!.prompt).toMatch(/A question, a request, a heading .* is not a claim/i);
+    expect(verify!.prompt).toMatch(/A question, a request, a heading.* is not a claim/i);
+    // Seen live: a block of pure opinion came back as a ❓ line plus a "Note:" line.
+    expect(verify!.prompt).toMatch(/an opinion or a prediction is not a claim/i);
     // The ✅/❌ split has to be stated, not just shown in the format list.
     expect(verify!.prompt).toMatch(/Use ✅ whenever the sources agree/i);
     expect(verify!.prompt).toMatch(/Use ❌ only when the sources contradict/i);
@@ -269,6 +284,9 @@ describe('built-in prompts', () => {
     expect(ask!.prompt).toMatch(/Do not answer from memory/i);
     expect(ask!.prompt).toMatch(/list the sources you used/i);
     expect(ask!.prompt).toMatch(/if the sources disagree/i);
+    // Seen live, 4 runs out of 4: English questions answered in Chinese with the
+    // language rule only in the system prompt.
+    expect(ask!.prompt).toMatch(/in the same language as the text above/i);
   });
 
   // The registration list is written by hand, so a new prompt file that nobody

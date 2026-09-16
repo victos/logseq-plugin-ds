@@ -39,8 +39,8 @@ export const MAX_SEARCH_HOPS = 4;
  */
 export const ANSWER_NOW =
   'Search is no longer available in this conversation. Do not call any tool. Answer now, ' +
-  'in the format requested, from the results you already have; mark any claim you could not ' +
-  'settle with ❓.';
+  'in the format requested, from the results you already have; say plainly what you could not ' +
+  'settle (in a fact check, mark such a claim with ❓).';
 
 /**
  * The model's own tool-call syntax leaking into the text. Seen from

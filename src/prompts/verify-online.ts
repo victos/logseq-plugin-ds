@@ -16,7 +16,7 @@ export const VerifyOnline: IPrompt = {
 """
 {content}
 """
-First decide what in the text is actually a factual claim — a statement that could be true or false. A question, a request, a heading or a note to yourself is not a claim. If the text makes no factual claim, reply with one single line saying there is nothing to verify, and stop. Never invent a claim the text does not make, and never restate the text's topic as if it were a claim.
+First decide what in the text is actually a factual claim — a statement that could be true or false. A question, a request, a heading, a note to yourself, an opinion or a prediction is not a claim. If the text makes no factual claim, reply with one single line saying there is nothing to verify, and stop. Never invent a claim the text does not make, and never restate the text's topic as if it were a claim.
 
 For each claim the text really does make, search before judging. Do not answer from memory.
 

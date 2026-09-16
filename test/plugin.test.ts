@@ -116,7 +116,7 @@ function fakeHost(settings: unknown, opts: { ops?: BlockOps; chat?: Chat | null;
 const CONFIGURED = { apiKey: 'sk-x', basePath: 'https://api.deepseek.com/v1', model: 'deepseek-chat', temperature: '0.3', tag: '[[🤖]]' };
 
 describe('a fresh install with nothing configured', () => {
-  it('registers the twelve built-in commands, not /Verify Online, and says the key is missing', () => {
+  it('registers the twelve built-in commands, not the searching ones, and says the key is missing', () => {
     const h = fakeHost({ disabled: false });
     startPlugin(h.host);
     expect([...h.commands.keys()]).toEqual(BUILT_IN);
@@ -164,10 +164,97 @@ describe('a settings file edited by hand', () => {
 });
 
 describe('the search key', () => {
-  it('registers /Verify Online only when set', () => {
+  const NEWS = { name: 'News', prompt: 'latest on {{text}}', output: 'insert', search: true };
+  const withNews = (settings: Record<string, unknown>) => ({ ...settings, customPrompts: { enable: true, prompts: [NEWS] } });
+
+  it('registers the searching commands only when set', () => {
     const h = fakeHost({ ...CONFIGURED, searchApiKey: ' tvly-x ' });
     startPlugin(h.host);
     expect(h.commands.has('Verify Online')).toBe(true);
+    expect(h.commands.has('Ask Online')).toBe(true);
+  });
+
+  it('counts a key of only spaces as unset', async () => {
+    const h = fakeHost({ ...CONFIGURED, searchApiKey: '   ' });
+    startPlugin(h.host);
+    expect([...h.commands.keys()]).toEqual(BUILT_IN);
+
+    // Registered with a key, then the key blanked to spaces rather than cleared.
+    const g = fakeHost({ ...CONFIGURED, searchApiKey: 'tvly-x' });
+    startPlugin(g.host);
+    g.change({ ...CONFIGURED, searchApiKey: '  ' });
+    await g.run('Ask Online');
+    expect(g.toasts.at(-1)).toBe(`error: ${NO_SEARCH_KEY_MESSAGE}`);
+  });
+
+  it('hands the search the key without its surrounding spaces', async () => {
+    const keys: string[] = [];
+    const h = fakeHost({ ...CONFIGURED, searchApiKey: ' tvly-x ' }, {
+      verify: async (_messages, _options, deps) => {
+        await deps.search('q');
+        return { content: 'ok', queries: ['q'] };
+      },
+    });
+    h.host.search = async (_query, options) => {
+      keys.push(options.apiKey);
+      return { hits: [] };
+    };
+    startPlugin(h.host);
+    await h.run('Ask Online');
+    expect(keys).toEqual(['tvly-x']);
+  });
+
+  it('sends a custom prompt with "search": true through the search loop', async () => {
+    const { ops, writes } = fakeOps();
+    const seen: string[] = [];
+    const h = fakeHost(withNews({ ...CONFIGURED, searchApiKey: 'tvly-x' }), {
+      ops,
+      verify: async (messages) => {
+        seen.push(messages[1].content);
+        return { content: 'Fresh — https://n.example', queries: [] };
+      },
+    });
+    startPlugin(h.host);
+    expect(h.toasts).toEqual([]);
+    await h.run('News');
+    expect(seen).toEqual(['latest on Hello']);
+    expect(writes).toEqual(['insert Fresh — https://n.example #[[🤖]]']);
+    expect(h.toasts[0]).toBe('info: News… (searching)');
+  });
+
+  it('says at start why a searching custom prompt is not registered without a key', () => {
+    const h = fakeHost(withNews(CONFIGURED));
+    startPlugin(h.host);
+    expect(h.commands.has('News')).toBe(false);
+    expect(h.toasts).toHaveLength(1);
+    expect(h.toasts[0]).toMatch(/^warning: DeepSeek Assistant ignored 1 custom prompt/);
+    expect(h.toasts[0]).toMatch(/"News" asks for "search" but no Web Search API Key is set/);
+  });
+
+  it('fails a searching custom prompt with the search-key message once the key is cleared', async () => {
+    const { ops, writes } = fakeOps();
+    const h = fakeHost(withNews({ ...CONFIGURED, searchApiKey: 'tvly-x' }), { ops });
+    startPlugin(h.host);
+    h.change(withNews(CONFIGURED));
+    expect(h.toasts).toEqual([
+      `warning: ${COMMANDS_CHANGED}`,
+      expect.stringMatching(/"News" asks for "search" but no Web Search API Key is set/),
+    ]);
+    await h.run('News');
+    expect(h.toasts.at(-1)).toBe(`error: ${NO_SEARCH_KEY_MESSAGE}`);
+    expect(writes).toEqual([]);
+  });
+
+  it('"search": true with "output": "replace" hands the searched answer to the subtree rewrite', async () => {
+    const { ops, writes } = fakeOps();
+    const lookUp = { name: 'Look Up', prompt: 'answer {{text}}', output: 'replace', search: true };
+    const h = fakeHost({ ...CONFIGURED, searchApiKey: 'tvly-x', customPrompts: { enable: true, prompts: [lookUp] } }, {
+      ops,
+      verify: async () => ({ content: 'Answer.\n\nhttps://a.example/one', queries: ['q'] }),
+    });
+    startPlugin(h.host);
+    await h.run('Look Up');
+    expect(writes).toEqual(['rewrite Answer.\n\nhttps://a.example/one| #[[🤖]]']);
   });
 
   it('fails /Verify Online with the search-key message when cleared after registration, before any toast', async () => {

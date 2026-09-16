@@ -91,7 +91,9 @@ type ReplyKind =
   | 'spoiled' // a closing fence with words after it, so it closes nothing
   | 'blank' // nothing but whitespace
   | 'fence-only' // a lone fence line
-  | 'unclosed'; // a fence opened and never closed
+  | 'unclosed' // a fence opened and never closed
+  | 'sourced' // a searched answer: prose, then bare URLs one per line, nothing of the outline
+  | 'sourced-list'; // the same with the URLs as an unindented bullet list
 
 type Command =
   | { kind: 'replace'; reply: ReplyKind; twice: boolean }
@@ -218,6 +220,7 @@ function genCommand(r: Rng, tag: string): Command {
   const kinds: ReplyKind[] = [
     'identity', 'identity', 'edit', 'edit', 'drop', 'add', 'merge', 'split', 'chatter',
     'fenced', 'spaces', 'stars', 'numbered', 'crlf', 'props', 'id-echo', 'spoiled', 'blank', 'fence-only', 'unclosed',
+    'sourced', 'sourced-list',
   ];
   switch (r.int(6)) {
     case 0:
@@ -583,6 +586,13 @@ function reply(kind: ReplyKind, context: string): string {
       return '```';
     case 'unclosed':
       return `\`\`\`\n${render(tree)}`;
+    // What `search: true` with `output: replace` sends through the outline
+    // parser: an answer that owes nothing to the outline, with the sources as
+    // bare URLs. `::` inside a URL must not read as a property line.
+    case 'sourced':
+      return 'The answer, looked up.\n\nhttps://a.example/one\nhttps://b.example/std::vector?q=1#frag';
+    case 'sourced-list':
+      return 'The answer, looked up.\n\nSources:\n- https://a.example/one\n- https://b.example/std::vector?q=1#frag';
   }
   return context;
 }

@@ -30,7 +30,7 @@ pnpm install && pnpm build
 
 ## 内置命令
 
-插件自带十二条命令，另有一条需要搜索 key 才启用。在块里输入 `/` 然后打名字就能找到。
+插件自带十二条命令，另有两条需要搜索 key 才启用。在块里输入 `/` 然后打名字就能找到。
 ![斜杠菜单里的插件命令](./docs/menu.png)
 
 
@@ -191,7 +191,7 @@ DB 图上插件不去查询反向引用，所以**那里一个都不删**。二�
   - ❓ <没找到可靠来源的说法>
 ```
 
-`/Verify Online` **只核查文本真正断言的内容**。如果块本身是一个问句、一个标题或一句备忘，那就没有
+`/Verify Online` **只核查文本真正断言的内容**。如果块本身是一个问句、一个标题、一句备忘或一种看法，那就没有
 什么可核查的，它会用一行说明这一点，而不是凭空编出几条"说法"再去核查。来源认同的说法标 ✅，
 不会标成 ❌ 再把来源原话当成"修正"写一遍。
 
@@ -223,11 +223,11 @@ Tavily 在搜索时就把正文清洗好一并返回，省掉了单独抓取这�
 | **Model** | `deepseek-chat` | 见下文。自定义命令可以单独覆盖 |
 | **Temperature** | `0.3` | 回答贴合原文的程度。改写类任务宜低；想让 Brainstorm 或 Ask AI 放开一些可以调到 `1.3` 左右 |
 | **Tag** | `[[🤖]]` | 给 AI 产出打的标签。填的时候**不要**带 `#`；留空则不打标签 |
-| **Web Search API Key** | *(空)* | 可选。[Tavily](https://tavily.com) 的 key，用于启用 `/Verify Online` |
+| **Web Search API Key** | *(空)* | 可选。[Tavily](https://tavily.com) 的 key，用于启用 `/Ask Online`、`/Verify Online` 以及任何带 `"search": true` 的自定义命令 |
 | **Custom Prompts** | 关闭 | 自定义命令，见下文 |
 
 前五项改完即生效，下一次执行命令时就会用新值，不需要重载插件。某一项被清空 —— 哪怕只剩几个空格 ——
-就算没填，会退回默认值。Web Search API Key 则不同：它决定 `/Verify Online` 是否注册，所以填入或清空
+就算没填，会退回默认值。Web Search API Key 则不同：它决定联网命令是否注册，所以填入或清空
 之后要重载插件 —— 命令集合发生变化时插件会弹一次通知提醒。
 
 API Key 还没填的时候，插件加载时会提示一次，免得刚装上的人对着失败的命令猜原因。
@@ -288,6 +288,11 @@ DeepSeek 的 API 现在在自己的报错里把模型叫做 `deepseek-flash` 和
 这需要配置 Web Search API Key。和内置的联网命令不同（那两条没有 key 时直接不注册），**自定义命令
 要求联网却没有 key 时会在警告里明说**，这样你自己写的命令不会莫名消失。
 
+`search` 和四种 `output` 都能搭配，但推荐用 `insert`。联网得到的答案是几句话加上所依据的网址；
+不写 `format` 的话，这些内容整体落进一个子块。改用 `replace` 时，同样的答案会走大纲改写流程：
+正文和裸网址会成为块自己的文字，但如果模型把来源写成了列表（`- https://…`），这些行会变成子块，
+并逐条覆盖这个块原有的子块。
+
 四种 `output` 模式的效果，以块内容 `三季度营收增长 12%，但流失率也上升了。` 为例：
 
 | `output` | 结果 |
@@ -332,8 +337,8 @@ DeepSeek 的 API 现在在自己的报错里把模型叫做 `deepseek-flash` 和
 | `DeepSeek returned nothing to insert.` | 回复里没有可用的行 —— 用 `/Fact Check` 时，它写的每一行都是在说某句话没问题，这类行会被丢掉。再跑一次，或者把块拆小 |
 | `This Logseq version cannot set block properties on a DB graph. Update Logseq, or change the prompt’s "output" away from "property".` | 只在 DB 图上出现：这个版本的 Logseq 没有 `upsertBlockProperty`。升级 Logseq，或者给这条命令换一种 `output` |
 | `Could not write the "…" property on this DB graph: …` | 只在 DB 图上出现：属性没能定义或写入，提示里会说明原因。先在 Logseq 里创建这个属性，或者把这条命令的 `output` 改成 `insert` |
-| `DeepSeek kept searching without answering (4 rounds). Try a shorter block.` | 只在 `/Verify Online` 出现：模型搜了四轮还想接着搜。把块拆小，每次少放几条说法 |
-| `No Tavily API key configured. Set it in the plugin settings.` | `/Verify Online` 是在配置了搜索 key 时注册的，而 key 后来被清空了。重新填上，或者重载插件让这条命令消失 |
+| `DeepSeek kept searching without answering (4 rounds). Try a shorter block.` | 只在联网命令（`/Ask Online`、`/Verify Online`、带 `search` 的自定义命令）出现：模型搜了四轮还想接着搜。把块拆小，每次少放几条说法或问题 |
+| `No Tavily API key configured. Set it in the plugin settings.` | 某条联网命令是在配置了搜索 key 时注册的，而 key 后来被清空（或只剩空格）了。重新填上，或者重载插件让这条命令消失 |
 | `Invalid Tavily API key (401): …` | 重新把 Tavily 的 key 复制到设置里 |
 | `Tavily rate limit or monthly quota reached (429): …` | 这个月的搜索额度用完了。等下月重置，或者升级套餐 |
 | `Tavily plan limit reached (432): …` | 当前 Tavily 套餐不允许这次请求，到 Tavily 控制台看看 |

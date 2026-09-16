@@ -32,7 +32,7 @@ Then `Plugins → Load unpacked plugin` and pick this folder.
 
 ## The commands
 
-Twelve commands come built in, plus one that needs a search key. Type `/` in a block and start typing the name.
+Twelve commands come built in, plus two that need a search key. Type `/` in a block and start typing the name.
 
 ![The plugin's commands in the slash menu](./docs/menu.png)
 
@@ -229,8 +229,8 @@ searches instead, and every verdict it writes carries the URL it rests on:
 ```
 
 `/Verify Online` only checks what the text actually asserts. A block that is a question, a
-heading or a note to yourself has nothing to verify, and it says so in one line rather than
-inventing claims to check. A claim the sources agree with gets a ✅, not a ❌ with the source
+heading, a note to yourself or an opinion has nothing to verify, and it says so in one line rather
+than inventing claims to check. A claim the sources agree with gets a ✅, not a ❌ with the source
 restated as though it were a correction.
 
 It is **off unless you set a Web Search API Key** in the settings — get one from
@@ -268,12 +268,12 @@ as part of the search, so no separate fetching step is needed.
 | **Model** | `deepseek-chat` | See below. A custom prompt can override it per command |
 | **Temperature** | `0.3` | How closely the answer sticks to your text. Low is right for rewriting; raise it towards `1.3` for Brainstorm or Ask AI |
 | **Tag** | `[[🤖]]` | Added to AI output. Write it without the `#`; leave empty to turn tagging off |
-| **Web Search API Key** | *(empty)* | Optional. A [Tavily](https://tavily.com) key; enables `/Verify Online` |
+| **Web Search API Key** | *(empty)* | Optional. A [Tavily](https://tavily.com) key; enables `/Ask Online`, `/Verify Online` and any custom prompt with `"search": true` |
 | **Custom Prompts** | off | Your own commands — see below |
 
 Changes to the first five apply to the next command you run; no reload needed. A field you
 have cleared — even to a few spaces — counts as unset and falls back to its default. The Web
-Search API Key is different: it decides whether `/Verify Online` is registered at all, so
+Search API Key is different: it decides whether the searching commands are registered at all, so
 setting or clearing it needs a reload — the plugin reminds you once, when the set of commands
 changes.
 
@@ -344,6 +344,12 @@ the built-in searching commands (which simply are not registered without one) a 
 asking for search without a key is reported in the warning toast, so a command you wrote
 yourself never disappears without explanation.
 
+`search` works with every `output`, but `insert` is the one to use. A searched answer is a few
+sentences followed by the URLs it relied on, and with no `format` all of that lands in one child
+block. With `replace` the same answer goes through the outline rewrite: prose and bare URLs
+become the block's own text, but a model that lists its sources as bullets (`- https://…`) turns
+them into child blocks, and those overwrite the block's existing sub-points one for one.
+
 The four `output` modes, using the block `Q3 revenue grew 12% but churn also rose.`:
 
 | `output` | Result |
@@ -389,8 +395,8 @@ Every failure shows up as a Logseq notification. The common ones:
 | `DeepSeek returned nothing to insert.` | The reply had no usable line — with `/Fact Check`, every line it wrote was about a statement it found nothing wrong with, and those are dropped. Run it again, or on a smaller block |
 | `This Logseq version cannot set block properties on a DB graph. Update Logseq, or change the prompt’s "output" away from "property".` | DB graphs only: this Logseq build has no `upsertBlockProperty`. Update Logseq, or give the prompt another `output` |
 | `Could not write the "…" property on this DB graph: …` | DB graphs only: the property could not be defined or written; the message says why. Create the property in Logseq first, or give the prompt `output: insert` |
-| `DeepSeek kept searching without answering (4 rounds). Try a shorter block.` | `/Verify Online` only: the model wanted a fifth round of searching. Put fewer claims in the block |
-| `No Tavily API key configured. Set it in the plugin settings.` | `/Verify Online` was registered while a search key was set, and the key has since been cleared. Set it again, or reload the plugin to drop the command |
+| `DeepSeek kept searching without answering (4 rounds). Try a shorter block.` | Searching commands only (`/Ask Online`, `/Verify Online`, custom prompts with `search`): the model wanted a fifth round of searching. Put fewer claims or questions in the block |
+| `No Tavily API key configured. Set it in the plugin settings.` | A searching command was registered while a search key was set, and the key has since been cleared (or blanked to spaces). Set it again, or reload the plugin to drop the command |
 | `Invalid Tavily API key (401): …` | Re-copy the Tavily key into settings |
 | `Tavily rate limit or monthly quota reached (429): …` | The month's searches are used up. Wait for the reset or upgrade the plan |
 | `Tavily plan limit reached (432): …` | Your Tavily plan does not allow the request; check the Tavily dashboard |

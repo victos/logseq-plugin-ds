@@ -110,9 +110,9 @@ const settings: SettingSchemaDesc[] = [
     type: 'string',
     title: 'Web Search API Key (optional)',
     description:
-      'A Tavily API key (https://tavily.com), which enables the "/Verify Online" command. ' +
-      'That command searches the web and cites a source for every verdict; without a key it ' +
-      'is not registered at all and nothing else changes. Reload the plugin after setting it.',
+      'A Tavily API key (https://tavily.com), which enables the commands that search the web: ' +
+      '"/Ask Online", "/Verify Online" and any custom prompt with "search": true. Without a key ' +
+      'they are not registered at all and nothing else changes. Reload the plugin after setting it.',
     default: '',
   },
   {
