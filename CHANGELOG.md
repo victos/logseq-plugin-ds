@@ -1,3 +1,18 @@
+# [1.2.0](https://github.com/victos/logseq-plugin-ds/compare/v1.1.1...v1.2.0) (2026-09-16)
+
+
+### Bug Fixes
+
+* /Ask Online answered English questions in Chinese ([638a8ea](https://github.com/victos/logseq-plugin-ds/commit/638a8ea057091db526fabfaf4f456fa1aefe50e0))
+* the language rule was making every command answer in Chinese ([ebd2868](https://github.com/victos/logseq-plugin-ds/commit/ebd2868ba6786b558c22dddedea9ae287510a0bf))
+* Verify Online invented claims and marked confirmed ones wrong ([95fc0c8](https://github.com/victos/logseq-plugin-ds/commit/95fc0c88c621d25fa3650add16dc80ed4ac055bb))
+
+
+### Features
+
+* add /Ask Online ([98c4214](https://github.com/victos/logseq-plugin-ds/commit/98c42141b20bf3dd23c456041a950843f9a13411))
+* let a custom prompt ask for web search ([cbf7f83](https://github.com/victos/logseq-plugin-ds/commit/cbf7f831579e43a4dd122d1e5f51a10e3be1fc8c))
+
 ## [1.1.1](https://github.com/victos/logseq-plugin-ds/compare/v1.1.0...v1.1.1) (2026-09-16)
 
 
