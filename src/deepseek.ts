@@ -70,6 +70,9 @@ interface ChatCompletionResponse {
 // is almost certainly a hung connection.
 export const DEFAULT_TIMEOUT_MS = 5 * 60 * 1000;
 
+/** Quoted in error messages; the settings schema declares the same value as its default. */
+export const DEFAULT_BASE_PATH = 'https://api.deepseek.com/v1';
+
 // deepseek-reasoner ignores (and historically rejected) the sampling parameters,
 // so they are only sent for the chat models.
 export function isReasoner(model: string) {
@@ -82,22 +85,49 @@ export function endpoint(basePath: string) {
   return /\/chat\/completions$/.test(base) ? base : `${base}/chat/completions`;
 }
 
-export function describeHttpError(status: number, body: string) {
-  let detail = body.slice(0, 300);
+/** Where the error came from, for a message that says what to change. */
+export interface ErrorContext {
+  url?: string;
+  model?: string;
+}
+
+const HTML_BODY = /^\s*<(?:!doctype|html|head|body)\b/i;
+const BASE_URL_HINT = `Check the API Base URL setting; the default is ${DEFAULT_BASE_PATH}.`;
+
+/**
+ * An HTTP failure as a sentence the user can act on. The status decides the
+ * first half; the body's `error.message`, or failing that the body itself,
+ * the second. Two answers are not from DeepSeek's API at all — an HTML error
+ * page, and a 404 — so there the base URL is the setting to look at, and an
+ * HTML page is not worth quoting.
+ */
+export function describeHttpError(status: number, body: string, context: ErrorContext = {}) {
+  let message: string | undefined;
   try {
-    const parsed = JSON.parse(body) as ChatCompletionResponse;
-    detail = parsed.error?.message ?? detail;
+    message = (JSON.parse(body) as ChatCompletionResponse).error?.message;
   } catch {
-    // keep the raw body
+    // not JSON
   }
+  // A gateway's own 5xx page is DeepSeek being down, not a wrong URL.
+  if (message === undefined && status < 500 && HTML_BODY.test(body)) {
+    return `DeepSeek request failed (${status}): ${context.url ?? 'the server'} answered with a web page, not an API reply. ${BASE_URL_HINT}`;
+  }
+  const detail = (message ?? body.slice(0, 300)).trim();
+  const sentence = detail.replace(/\.$/, '');
 
   switch (status) {
     case 400:
+      if (/\bmodel\b/i.test(detail)) {
+        const which = context.model ? ` "${context.model}"` : '';
+        return `DeepSeek does not know the model${which} (400): ${sentence}. Check the Model setting.`;
+      }
       return `DeepSeek rejected the request as malformed (400): ${detail}`;
     case 401:
       return `Invalid DeepSeek API key (401): ${detail}`;
     case 402:
       return `DeepSeek account has insufficient balance (402): ${detail}`;
+    case 404:
+      return `Nothing answers at ${context.url ?? 'that URL'} (404)${sentence ? `: ${sentence}` : ''}. ${BASE_URL_HINT}`;
     case 422:
       return `DeepSeek rejected the request parameters (422): ${detail}`;
     case 429:
@@ -192,6 +222,14 @@ export async function chat(messages: ChatMessage[], options: ChatOptions): Promi
   if (!model) {
     throw new Error('No model configured. Set it in the plugin settings.');
   }
+  // A base URL without a scheme is resolved against the plugin's own origin
+  // and fails with a message about that origin, which names nothing the user
+  // can change.
+  if (!/^https?:\/\//i.test(basePath)) {
+    throw new Error(
+      `The API Base URL must start with https:// — it is "${basePath}". ${BASE_URL_HINT}`,
+    );
+  }
 
   const url = endpoint(basePath);
   const controller = new AbortController();
@@ -256,7 +294,7 @@ export async function chat(messages: ChatMessage[], options: ChatOptions): Promi
   }
 
   if (!response.ok) {
-    throw new Error(describeHttpError(response.status, text));
+    throw new Error(describeHttpError(response.status, text, { url, model }));
   }
 
   let payload: ChatCompletionResponse;

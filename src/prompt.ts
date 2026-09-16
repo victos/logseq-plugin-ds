@@ -24,11 +24,6 @@ export function buildUserMessage(prompt: string, content: string, formatInstruct
   return message;
 }
 
-export interface CustomPromptsSetting {
-  enable?: boolean;
-  prompts?: unknown;
-}
-
 export interface ResolvedPrompts {
   prompts: IPrompt[];
   /** Human-readable reasons for each custom prompt that was ignored. */
@@ -77,10 +72,49 @@ export function validateCustomPrompt(
   if (model) {
     resolved.model = model;
   }
-  if (raw.format !== undefined) {
-    resolved.format = raw.format as IPrompt['format'];
+  if (raw.format !== undefined && raw.format !== null) {
+    const format = raw.format;
+    const shaped = Array.isArray(format) || (typeof format === 'object' && !Array.isArray(format));
+    if (!shaped) {
+      return {
+        problem: `"${name}" has an invalid "format" (${JSON.stringify(format)}); ` +
+          'expected [] for a list or {"key": "description"} for named fields',
+      };
+    }
+    resolved.format = format as IPrompt['format'];
   }
   return { prompt: resolved };
+}
+
+const CUSTOM_PROMPTS_SHAPE = '{"enable": true, "prompts": [ … ]}';
+
+/**
+ * The entries of `customPrompts`, or the reason there are none. A setting of
+ * the wrong shape is reported rather than skipped: someone who has just
+ * written it wants to know why nothing happened. One that is switched off is
+ * left alone whatever is in it.
+ */
+function customEntries(custom: unknown): { entries: unknown[] } | { problem?: string } {
+  if (custom === undefined || custom === null) {
+    return {};
+  }
+  if (Array.isArray(custom)) {
+    return { problem: `customPrompts is a list; it must be an object like ${CUSTOM_PROMPTS_SHAPE}` };
+  }
+  if (typeof custom !== 'object') {
+    return { problem: `customPrompts is ${JSON.stringify(custom)}; it must be an object like ${CUSTOM_PROMPTS_SHAPE}` };
+  }
+  const { enable, prompts } = custom as { enable?: unknown; prompts?: unknown };
+  if (!enable) {
+    return {};
+  }
+  if (!Array.isArray(prompts)) {
+    return {
+      problem: `customPrompts is enabled but "prompts" is ${prompts === undefined ? 'missing' : 'not a list'}; ` +
+        `it must be an object like ${CUSTOM_PROMPTS_SHAPE}`,
+    };
+  }
+  return { entries: prompts };
 }
 
 /**
@@ -90,7 +124,7 @@ export function validateCustomPrompt(
  */
 export function resolvePrompts(
   presets: IPrompt[],
-  custom: CustomPromptsSetting | undefined | null,
+  custom: unknown,
   searchAvailable = false,
 ): ResolvedPrompts {
   // A command that needs web search is left out entirely rather than
@@ -100,8 +134,9 @@ export function resolvePrompts(
   const byName = new Map(usable.map((prompt) => [prompt.name, prompt]));
   const problems: string[] = [];
 
-  if (custom?.enable && Array.isArray(custom.prompts)) {
-    custom.prompts.forEach((entry, index) => {
+  const custom_ = customEntries(custom);
+  if ('entries' in custom_) {
+    custom_.entries.forEach((entry, index) => {
       const result = validateCustomPrompt(entry, index);
       if ('problem' in result) {
         problems.push(result.problem);
@@ -109,6 +144,8 @@ export function resolvePrompts(
         byName.set(result.prompt.name, result.prompt);
       }
     });
+  } else if (custom_.problem) {
+    problems.push(custom_.problem);
   }
 
   return { prompts: [...byName.values()], problems };

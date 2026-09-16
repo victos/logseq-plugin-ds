@@ -1,21 +1,27 @@
 import { SettingSchemaDesc } from '@logseq/libs/dist/LSPlugin.user';
+import { DEFAULT_BASE_PATH } from './deepseek';
 import { IPrompt } from './prompts/type';
 
+/** The settings as the plugin uses them; see {@link readSettings}. */
 export interface ISettings {
   apiKey: string;
   basePath: string;
   model: string;
-  temperature: number;
+  temperature: number | undefined;
   searchApiKey: string;
   tag: string;
-  customPrompts: {
-    enable: boolean;
-    prompts: IPrompt[];
-  };
+  /** Validated by `resolvePrompts`; anything may be in the settings file. */
+  customPrompts: unknown;
+}
+
+/** What a well-formed `customPrompts` looks like. */
+export interface CustomPromptsSetting {
+  enable?: boolean;
+  prompts?: IPrompt[];
 }
 
 export const SETTING_DEFAULTS = {
-  basePath: 'https://api.deepseek.com/v1',
+  basePath: DEFAULT_BASE_PATH,
   model: 'deepseek-chat',
   temperature: 0.3,
   tag: '[[🤖]]',
@@ -34,6 +40,31 @@ export function readTemperature(value: unknown): number | undefined {
     return Number(value);
   }
   return undefined;
+}
+
+function text(value: unknown): string {
+  return typeof value === 'string' ? value : '';
+}
+
+/**
+ * The stored settings made safe to use. Logseq's settings panel keeps every
+ * text field a string, but the settings file can be edited by hand, and a
+ * number or `null` where a string is expected used to throw inside a command
+ * ("apiKey.trim is not a function") — or, for `searchApiKey`, at startup,
+ * before any command was registered. Missing and wrong-typed values read as
+ * unset; the defaults are applied where they are used.
+ */
+export function readSettings(raw: unknown): ISettings {
+  const s = (typeof raw === 'object' && raw !== null ? raw : {}) as Record<string, unknown>;
+  return {
+    apiKey: text(s.apiKey),
+    basePath: text(s.basePath),
+    model: text(s.model),
+    temperature: readTemperature(s.temperature),
+    searchApiKey: text(s.searchApiKey),
+    tag: text(s.tag),
+    customPrompts: s.customPrompts,
+  };
 }
 
 const settings: SettingSchemaDesc[] = [

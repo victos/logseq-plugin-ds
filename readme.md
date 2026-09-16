@@ -257,9 +257,14 @@ as part of the search, so no separate fetching step is needed.
 | **Web Search API Key** | *(empty)* | Optional. A [Tavily](https://tavily.com) key; enables `/Verify Online` |
 | **Custom Prompts** | off | Your own commands — see below |
 
-Changes to the first five apply to the next command you run; no reload needed. The Web Search
-API Key is different: it decides whether `/Verify Online` is registered at all, so setting or
-clearing it needs a reload — the plugin reminds you.
+Changes to the first five apply to the next command you run; no reload needed. A field you
+have cleared — even to a few spaces — counts as unset and falls back to its default. The Web
+Search API Key is different: it decides whether `/Verify Online` is registered at all, so
+setting or clearing it needs a reload — the plugin reminds you once, when the set of commands
+changes.
+
+Until an API key is set, the plugin says so once when it loads, so a fresh install is not left
+guessing why a command fails.
 
 Logseq saves the Temperature field as text once you have edited it (`"0.3"`, not `0.3`); the
 plugin reads it either way. Earlier builds did not, and silently ran every command at
@@ -277,6 +282,11 @@ until you change it.
   questions, but noticeably slower and more expensive. Its thinking never reaches your block;
   during a `/Verify Online` run it is handed back to the model between searches, as the API
   requires, and dropped once the answer is in. The Temperature setting is not sent to it.
+
+DeepSeek's API currently names its models `deepseek-flash` and `deepseek-v4-pro` in its own
+messages; `deepseek-chat` and `deepseek-reasoner` are still accepted and map onto them. Either
+spelling works in the Model setting. A name DeepSeek does not know fails with
+`DeepSeek does not know the model "…"`, which quotes the names it does.
 
 ## Writing your own commands
 
@@ -328,8 +338,11 @@ Two things worth knowing:
   Logseq macros like `{{query ...}}` are all safe.
 - If you name a custom prompt the same as a built-in one, yours wins.
 
-If an entry is malformed — no `name`, no `prompt`, or an `output` that isn't one of the four —
-the plugin skips it and tells you which one when it loads.
+If an entry is malformed — no `name`, no `prompt`, an `output` that isn't one of the four, or a
+`format` that is neither `[]` nor an object — the plugin skips it and tells you which one when
+it loads. The same notice appears if the setting as a whole has the wrong shape: a list where
+the `{"enable": …, "prompts": […]}` object should be, or `enable` on with `prompts` missing or
+not a list. Nothing about custom prompts fails silently.
 
 ## When something goes wrong
 
@@ -337,7 +350,12 @@ Every failure shows up as a Logseq notification. The common ones:
 
 | Message | What to do |
 | --- | --- |
+| `DeepSeek Assistant: no API key set yet. …` | Shown once when the plugin loads without a key. Paste your key into the settings |
 | `No DeepSeek API key configured. Set it in the plugin settings.` | Paste your key into the settings |
+| `The API Base URL must start with https:// — it is "…".` | The API Base URL setting has no scheme. The default is `https://api.deepseek.com/v1` |
+| `Nothing answers at … (404). Check the API Base URL setting …` | The URL points at nothing — a typo in the path, most likely. Reset the API Base URL to its default |
+| `DeepSeek request failed (…): … answered with a web page, not an API reply.` | The URL reaches a website, not the API — `platform.deepseek.com` instead of `api.deepseek.com`, say. Reset the API Base URL |
+| `DeepSeek does not know the model "…" (400): …` | The Model setting (or a custom prompt's `model`) names a model DeepSeek does not have; the message lists the ones it does |
 | `Invalid DeepSeek API key (401): …` | Re-copy the key into settings |
 | `DeepSeek account has insufficient balance (402): …` | Top up at platform.deepseek.com |
 | `DeepSeek rate limit reached (429): …` | Wait a moment and retry |
@@ -355,15 +373,15 @@ Every failure shows up as a Logseq notification. The common ones:
 | `Invalid Tavily API key (401): …` | Re-copy the Tavily key into settings |
 | `Tavily rate limit or monthly quota reached (429): …` | The month's searches are used up. Wait for the reset or upgrade the plan |
 | `Tavily plan limit reached (432): …` | Your Tavily plan does not allow the request; check the Tavily dashboard |
-| `DeepSeek Assistant ignored N custom prompt(s): …` | One of your custom prompts is malformed; the message names it |
-| `Available commands changed. Reload the plugin to update the slash menu.` | You added, renamed or removed a custom prompt, or set or cleared the Web Search API Key |
+| `DeepSeek Assistant ignored N custom prompt(s): …` | One of your custom prompts is malformed, or the `customPrompts` setting as a whole has the wrong shape; the message says which |
+| `Available commands changed. Reload the plugin to update the slash menu.` | You added, renamed or removed a custom prompt, or set or cleared the Web Search API Key. Said once per such change |
 
 Still stuck? Open the Logseq developer console (`Ctrl+Shift+I`) — the full error is logged there.
 
 ## For developers
 
 ```sh
-pnpm test    # 276 unit tests (vitest)
+pnpm test    # 332 tests (vitest), one of them a property-based harness over the block-writing pipeline
 pnpm lint    # eslint over src/ and test/
 pnpm build   # tsc + vite → dist/
 ```
@@ -372,7 +390,8 @@ Source layout:
 
 | File | Responsibility |
 | --- | --- |
-| `src/main.ts` | Logseq glue: registers commands, reads and writes blocks. Not unit-tested |
+| `src/main.ts` | The only file that touches the `logseq` global: a few lines wiring Logseq into `plugin.ts`. Not unit-tested |
+| `src/plugin.ts` | Reads the settings, registers and dispatches the slash commands, runs one, turns failures into notifications. Tested against a fake host — a fresh install, a hand-edited settings file, a key cleared mid-session |
 | `src/graph.ts` | File-graph / DB-graph adapters; everything that touches a block goes through it |
 | `src/block.ts` | Block content — property splitting, tags, editor/DB merge |
 | `src/outline.ts` | Subtree rewrites: parsing the model's outline back into a tree and planning which blocks to update, insert, remove or keep |

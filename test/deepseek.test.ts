@@ -322,3 +322,37 @@ describe('chat', () => {
     await expect(pending).rejects.toThrow(/cancelled/);
   });
 });
+
+describe('messages for a misconfigured endpoint or model', () => {
+  const url = 'https://api.deepseek.com/v2/chat/completions';
+
+  it('names the base URL setting when the reply is not from the API at all', () => {
+    expect(describeHttpError(404, '', { url })).toBe(
+      `Nothing answers at ${url} (404). Check the API Base URL setting; the default is https://api.deepseek.com/v1.`,
+    );
+    expect(describeHttpError(429, '<!DOCTYPE html>\n<html><title>Error - Request Blocked</title>', { url })).toMatch(
+      /^DeepSeek request failed \(429\): .* answered with a web page, not an API reply\. Check the API Base URL setting/,
+    );
+    expect(describeHttpError(404, '{"error":{"message":"not found"}}', { url })).toBe(
+      `Nothing answers at ${url} (404): not found. Check the API Base URL setting; the default is https://api.deepseek.com/v1.`,
+    );
+  });
+
+  it('points at the Model setting for the message DeepSeek sends for an unknown model', () => {
+    const body = '{"error":{"message":"The supported API model names are deepseek-flash, deepseek-v4-pro, but you passed deepseek-chta.","type":"invalid_request_error"}}';
+    expect(describeHttpError(400, body, { model: 'deepseek-chta' })).toBe(
+      'DeepSeek does not know the model "deepseek-chta" (400): The supported API model names are deepseek-flash, deepseek-v4-pro, but you passed deepseek-chta. Check the Model setting.',
+    );
+    expect(describeHttpError(400, '{"error":{"message":"Invalid temperature value, the valid range of temperature is [0, 2]"}}')).toBe(
+      'DeepSeek rejected the request as malformed (400): Invalid temperature value, the valid range of temperature is [0, 2]',
+    );
+  });
+
+  it('refuses a base URL without a scheme before sending anything', async () => {
+    const { fetch, calls } = fakeFetch(ok('x'));
+    await expect(chat(MESSAGES, { ...BASE, basePath: 'api.deepseek.com/v1', fetch })).rejects.toThrow(
+      'The API Base URL must start with https:// — it is "api.deepseek.com/v1". Check the API Base URL setting; the default is https://api.deepseek.com/v1.',
+    );
+    expect(calls).toEqual([]);
+  });
+});

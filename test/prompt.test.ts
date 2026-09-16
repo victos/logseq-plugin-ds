@@ -223,3 +223,30 @@ describe('built-in prompts', () => {
     expect(PRESETS).toHaveLength(13);
   });
 });
+
+describe('a customPrompts setting of the wrong shape', () => {
+  it('is reported when enabled with something other than a list of prompts', () => {
+    expect(resolvePrompts(PRESETS, { enable: true, prompts: { name: 'X' } }).problems).toEqual([
+      'customPrompts is enabled but "prompts" is not a list; it must be an object like {"enable": true, "prompts": [ … ]}',
+    ]);
+    expect(resolvePrompts(PRESETS, { enable: true }).problems[0]).toMatch(/"prompts" is missing/);
+    expect(resolvePrompts(PRESETS, [{ name: 'X', prompt: 'p', output: 'insert' }]).problems[0]).toMatch(/is a list; it must be an object/);
+    expect(resolvePrompts(PRESETS, 'yes').problems[0]).toMatch(/is "yes"; it must be an object/);
+  });
+
+  it('is left alone while disabled, and absent when unset', () => {
+    expect(resolvePrompts(PRESETS, { enable: false, prompts: 'junk' }).problems).toEqual([]);
+    expect(resolvePrompts(PRESETS, undefined).problems).toEqual([]);
+    expect(resolvePrompts(PRESETS, null).problems).toEqual([]);
+    expect(resolvePrompts(PRESETS, {}).problems).toEqual([]);
+  });
+
+  it('rejects a "format" that is neither a list nor an object', () => {
+    expect(validateCustomPrompt({ name: 'X', prompt: 'p', output: 'insert', format: 'list' }, 0)).toEqual({
+      problem: '"X" has an invalid "format" ("list"); expected [] for a list or {"key": "description"} for named fields',
+    });
+    expect(validateCustomPrompt({ name: 'X', prompt: 'p', output: 'insert', format: null }, 0)).toEqual({
+      prompt: { name: 'X', prompt: 'p', output: 'insert' },
+    });
+  });
+});

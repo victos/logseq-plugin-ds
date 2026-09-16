@@ -165,6 +165,16 @@ describe('code fence markers', () => {
     });
   });
 
+  it('spoiled by the model do not swallow the sub-points beneath the point either', () => {
+    // Found by the strengthened harness in round 6: the barrier stopped only at
+    // points of the same depth or shallower, so a spoiled closer ran into a
+    // fence inside a sub-point and the sub-point was deleted into the parent.
+    expect(parseOutline('1\n\t- ```\n\t  ``` oops\n\t\t- ```\n\t\t  ```')).toEqual({
+      text: '1',
+      children: [{ text: '```\n``` oops', children: [{ text: '```\n```', children: [] }] }],
+    });
+  });
+
   it('open on the bullet line of a point that is a code block', () => {
     expect(parseOutline('a\n\t- ```\n\t  ```\n\t\t- ```\n\t\t  ```')).toEqual({
       text: 'a',
@@ -196,6 +206,16 @@ describe('a reply wrapped in a code fence', () => {
     expect(parseOutline('```\ns\n```\n```\n\t- ```\n\t  ```', { unwrapFence: true })).toEqual({
       text: 's\n```\n```',
       children: [{ text: '```\n```', children: [] }],
+    });
+  });
+
+  it('keeps a code block\'s own opener when a spoiled fence in a sub-point leaves a marker unpaired', () => {
+    // Found by the strengthened harness in round 6 (seed 50330): the opener was
+    // dropped as "never closed", the block's code became outline points and
+    // its children were re-created under the wrong parent.
+    expect(parseOutline('~~~\n- item\n~~~\n\t- ~~~\n\t  x\n\t  ~~~ oops\n\t- B', { unwrapFence: false })).toEqual({
+      text: '~~~\n- item\n~~~',
+      children: [{ text: '~~~\nx\n~~~ oops', children: [] }, { text: 'B', children: [] }],
     });
   });
 

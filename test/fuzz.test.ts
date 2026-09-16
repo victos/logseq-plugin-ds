@@ -18,13 +18,11 @@ import {
   closeFences,
   fenceRoles,
   fileText,
-  hasTag,
   isFenceLine,
   propertyLineKey,
   splitProperties,
   stripTag,
   withTag,
-  isHiddenProperty,
 } from '../src/block';
 import { OutlineNode, parseOutline, renderOutline } from '../src/outline';
 
@@ -68,6 +66,10 @@ interface GenBlock {
   props: string[];
   /** Where the property lines sit inside `content` (file graphs only). */
   layout: 'logseq' | 'end';
+  /** The generator put the plugin's tag on this block: it is earlier output, not the user's note. */
+  tagged: boolean;
+  /** A `key:: value` line placed inside a code fence in the body; code, not a property. */
+  fencedProp?: string;
   children: GenBlock[];
 }
 
@@ -85,6 +87,8 @@ type ReplyKind =
   | 'numbered' // `1.` bullets
   | 'crlf' // CRLF line endings
   | 'props' // a `key:: value` line echoed inside a point
+  | 'id-echo' // an `id::` line echoed inside a point: another block's identity
+  | 'spoiled' // a closing fence with words after it, so it closes nothing
   | 'blank' // nothing but whitespace
   | 'fence-only' // a lone fence line
   | 'unclosed'; // a fence opened and never closed
@@ -136,7 +140,20 @@ const PROSE = [
   '# Heading',
   'TODO write it',
   '#tag-like words #AI-notes',
+  'see #ai-notes and #[[🤖]]-ish',
+  'the id:: thing is not a property',
 ];
+
+/** Property keys Logseq hides from the file-graph editor, as the harness knows them; the code has its own list. */
+const HIDDEN_IN_EDITOR = /^(?:id|collapsed|heading|created-at|logseq\..*|card-.*)$/;
+/** A `key:: value` line, as the harness reads one; the code has its own pattern. */
+const PROPERTY_SHAPED = /^\s*([^\s:]+)::(?:\s|$)/;
+const FENCE_SHAPED = /^\s*(?:```|~~~)/;
+/** The tag as a whole token: `#ai` is not in `#ai-notes`. */
+function carriesTag(text: string, tag: string): boolean {
+  const token = tag.trim();
+  return Boolean(token) && text.split(/\s+/).includes(token);
+}
 
 const PROPS = [
   'id:: ',
@@ -151,13 +168,21 @@ const PROPS = [
   'key::',
 ];
 
-function genBody(r: Rng, tag: string, tagged: boolean): string[] {
+function genBody(r: Rng, tag: string, tagged: boolean): { lines: string[]; fencedProp?: string } {
   const n = r.pick([0, 1, 1, 2, 3, 4]);
   const lines: string[] = [];
   for (let i = 0; i < n; i++) lines.push(r.pick(PROSE));
+  let fencedProp: string | undefined;
   if (r.chance(0.15)) {
-    // A closed fence around whatever is there.
-    lines.unshift(r.pick(['```', '```py', '~~~']));
+    // A closed fence around whatever is there. Only a backtick fence with no
+    // fence-like line inside is known to be closed; a property line put in
+    // such a fence is code, and the harness can hold the code to that.
+    const opener = r.pick(['```', '```py', '~~~']);
+    if (opener !== '~~~' && r.chance(0.5) && !lines.some((l) => FENCE_SHAPED.test(l))) {
+      fencedProp = r.pick(['owner:: in-code', 'id:: 0000-fenced', 'collapsed:: true']);
+      lines.push(fencedProp);
+    }
+    lines.unshift(opener);
     lines.push('```');
   }
   if (tagged && tag) {
@@ -165,13 +190,15 @@ function genBody(r: Rng, tag: string, tagged: boolean): string[] {
     if (lines.length && r.chance(0.7) && !isFenceLine(last) && !propertyLineKey(last)) lines[lines.length - 1] += tag;
     else lines.push(tag.trim());
   }
-  return lines;
+  return { lines, fencedProp };
 }
 
 function genBlock(r: Rng, tag: string, uuid: () => string, depth: number, canTag: boolean): GenBlock {
   const kind = r.pick(['text', 'text', 'text', 'empty', 'blank', canTag ? 'tagged' : 'text']);
-  const tagged = kind === 'tagged';
-  const body = kind === 'empty' ? [] : kind === 'blank' ? ['   '] : genBody(r, tag, tagged);
+  const tagged = kind === 'tagged' && Boolean(tag);
+  const gen: { lines: string[]; fencedProp?: string } =
+    kind === 'empty' ? { lines: [] } : kind === 'blank' ? { lines: ['   '] } : genBody(r, tag, tagged);
+  const { lines: body, fencedProp } = gen;
   const props: string[] = [];
   const np = r.pick([0, 0, 0, 1, 1, 2, 3]);
   const id = uuid();
@@ -184,13 +211,13 @@ function genBlock(r: Rng, tag: string, uuid: () => string, depth: number, canTag
     const nc = r.pick([0, 0, 1, 1, 2, 3]);
     for (let i = 0; i < nc; i++) children.push(genBlock(r, tag, uuid, depth + 1, canTag));
   }
-  return { body, props, layout: r.chance(0.8) ? 'logseq' : 'end', children };
+  return { body, props, layout: r.chance(0.8) ? 'logseq' : 'end', tagged, ...(fencedProp ? { fencedProp } : {}), children };
 }
 
 function genCommand(r: Rng, tag: string): Command {
   const kinds: ReplyKind[] = [
     'identity', 'identity', 'edit', 'edit', 'drop', 'add', 'merge', 'split', 'chatter',
-    'fenced', 'spaces', 'stars', 'numbered', 'crlf', 'props', 'blank', 'fence-only', 'unclosed',
+    'fenced', 'spaces', 'stars', 'numbered', 'crlf', 'props', 'id-echo', 'spoiled', 'blank', 'fence-only', 'unclosed',
   ];
   switch (r.int(6)) {
     case 0:
@@ -202,7 +229,7 @@ function genCommand(r: Rng, tag: string): Command {
     case 4:
       return { kind: 'property', key: r.pick(['summarize', 'ask-ai', 'owner']), value: r.pick(['v', 'a\nb', 'x:: y', '']) };
     default:
-      return { kind: 'insert', items: r.pick([['one'], ['a', 'b'], ['```\ncode\n```'], []]) };
+      return { kind: 'insert', items: r.pick([['one'], ['a', 'b'], ['```\ncode\n```'], ['x\nid:: b9'], []]) };
   }
 }
 
@@ -238,6 +265,10 @@ interface Node {
   props: Record<string, string>;
   children: Node[];
   parent: Node | null;
+  /** The generator's truth: this block is the plugin's own output (tagged, or inserted by an `insert` command). */
+  pluginOutput: boolean;
+  /** The block as generated, while nothing has written to it yet. */
+  pristine?: GenBlock;
 }
 
 interface Snapshot {
@@ -247,6 +278,8 @@ interface Snapshot {
   props: Record<string, string>;
   parent: string | null;
   children: string[];
+  pluginOutput: boolean;
+  pristine?: GenBlock;
 }
 
 function fileContent(block: GenBlock): string {
@@ -280,6 +313,8 @@ class Graph implements EditorApi {
       props,
       children: [],
       parent,
+      pluginOutput: block.tagged,
+      pristine: block,
     };
     this.nodes.set(uuid, node);
     (parent ? parent.children : this.roots).push(node);
@@ -311,6 +346,7 @@ class Graph implements EditorApi {
     this.log.push(`update ${uuid} ${JSON.stringify(content)}`);
     if (this.backend === 'file') node.content = content;
     else node.title = content;
+    delete node.pristine;
   }
 
   async insertBlock(uuid: string, content: string, opts?: Record<string, unknown>) {
@@ -323,6 +359,7 @@ class Graph implements EditorApi {
       props: {},
       children: [],
       parent: null,
+      pluginOutput: false,
     };
     this.log.push(`insert ${opts?.sibling ? 'after' : 'under'} ${uuid} ${JSON.stringify(content)} -> ${fresh.uuid}`);
     if (opts?.sibling) {
@@ -367,6 +404,7 @@ class Graph implements EditorApi {
     if (!node) throw new Error(`upsertBlockProperty: no block ${uuid}`);
     this.log.push(`prop ${uuid} ${key}=${JSON.stringify(value)}`);
     node.props[key] = String(value);
+    delete node.pristine;
   }
 
   snapshot(): Map<string, Snapshot> {
@@ -379,9 +417,30 @@ class Graph implements EditorApi {
         props: { ...node.props },
         parent: node.parent?.uuid ?? null,
         children: node.children.map((c) => c.uuid),
+        pluginOutput: node.pluginOutput,
+        ...(node.pristine ? { pristine: node.pristine } : {}),
       });
     }
     return out;
+  }
+
+  /** Marks blocks the plugin has just inserted as its own output, the way the tag would. */
+  markPluginOutput(before: Map<string, Snapshot>) {
+    for (const node of this.nodes.values()) {
+      if (!before.has(node.uuid)) node.pluginOutput = true;
+    }
+  }
+
+  /** The raw content as Logseq stores it: `content` on a file graph, `title` on a DB graph. */
+  raw(s: Snapshot): string {
+    return this.backend === 'file' ? s.content : s.title;
+  }
+
+  /** The block's prose as the user sees it in the editor right now, without properties. */
+  liveBody(uuid: string, typing: boolean): string {
+    const node = this.nodes.get(uuid)!;
+    const body = this.backend === 'db' ? node.title : splitProperties(node.content).body;
+    return typing ? typeInto(body) : body;
   }
 
   /** The block's prose, the way the adapter under test reads it. */
@@ -403,7 +462,7 @@ class Graph implements EditorApi {
       text = node.title;
     } else {
       const { body, properties } = splitProperties(node.content);
-      const visible = properties.filter((p) => !isHiddenProperty(propertyLineKey(p) ?? ''));
+      const visible = properties.filter((p) => !HIDDEN_IN_EDITOR.test(propertyLineKey(p) ?? ''));
       const typed = typing ? typeInto(body) : body;
       return visible.length ? `${typed}\n${visible.join('\n')}` : typed;
     }
@@ -476,7 +535,7 @@ function reply(kind: ReplyKind, context: string): string {
       );
     }
     case 'add':
-      return `${render(tree)}\n\t- Added point`;
+      return `${render(tree)}\n\t- ${['Added point', '1. Added step\n\t  owner:: model', 'Added point\n\t  owner:: model'][tree.text.length % 3]}`;
     case 'merge': {
       const t = { ...tree, children: [...tree.children] };
       if (t.children.length >= 2) {
@@ -507,6 +566,17 @@ function reply(kind: ReplyKind, context: string): string {
       return render(tree).replace(/\n/g, '\r\n');
     case 'props':
       return render(mapTree(tree, (n) => [{ ...n, text: `${n.text}\nowner:: model` }])[0]);
+    case 'id-echo':
+      return render(mapTree(tree, (n) => [{ ...n, text: `${n.text}\nid:: b1` }])[0]);
+    case 'spoiled': {
+      // The first bare closing fence in a sub-point gets words after it.
+      const lines = render(tree).split('\n');
+      const roles = fenceRoles(lines, (line) => line.replace(/^(\s*)(?:[-*+•]\s+|\d+[.)]\s+)/, ''));
+      const at = lines.findIndex((line, i) => roles[i] === 'close' && /^\t/.test(line));
+      if (at === -1) return context;
+      lines[at] = `${lines[at]} oops`;
+      return lines.join('\n');
+    }
     case 'blank':
       return '  \n\n';
     case 'fence-only':
@@ -540,6 +610,18 @@ function norm(text: string, tag: string): string {
   return lines ? closeFences(lines) : lines;
 }
 
+/**
+ * Blank lines between lines of prose: paragraph breaks, which `norm` looks
+ * past and a rewrite must not lose. A line holding only the tag is not one.
+ */
+function paragraphBreaks(text: string, tag: string): number {
+  const token = tag.trim();
+  const lines = text.split('\n').filter((l) => !token || l.trim() !== token).map((l) => stripTag(l, tag).trim());
+  while (lines.length && !lines[0]) lines.shift();
+  while (lines.length && !lines[lines.length - 1]) lines.pop();
+  return lines.filter((l) => !l).length;
+}
+
 function subtree(snap: Map<string, Snapshot>, uuid: string): Set<string> {
   const out = new Set<string>();
   const walk = (id: string) => {
@@ -550,14 +632,17 @@ function subtree(snap: Map<string, Snapshot>, uuid: string): Set<string> {
   return out;
 }
 
-/** Blocks under `root` the model was shown, and the ones it was not (tagged subtrees). */
-function seenAndUnseen(g: Graph, snap: Map<string, Snapshot>, root: string, tag: string) {
+/**
+ * Blocks under `root` the model was shown, and the ones it was not (the
+ * plugin's own output and everything under it). Decided from what the
+ * generator did, not from the code's tag matching, which is under test.
+ */
+function seenAndUnseen(g: Graph, snap: Map<string, Snapshot>, root: string) {
   const seen = new Set<string>();
   const unseen = new Set<string>();
   const walk = (id: string, hidden: boolean) => {
     const s = snap.get(id)!;
-    const isTagged = id !== root && hasTag(g.text(s), tag);
-    const h = hidden || isTagged;
+    const h = hidden || (id !== root && s.pluginOutput);
     (h ? unseen : seen).add(id);
     s.children.forEach((c) => walk(c, h));
   };
@@ -565,8 +650,77 @@ function seenAndUnseen(g: Graph, snap: Map<string, Snapshot>, root: string, tag:
   return { seen, unseen };
 }
 
+/** An `id::` property line, as the harness reads one: outside any fence the generator knows about. */
+function hasIdLine(g: Graph, s: Snapshot): boolean {
+  if (g.backend === 'db') return false;
+  // With a fence in the body the generator cannot say whether its own
+  // property lines ended up inside it, so there the code's reading stands.
+  if (s.pristine && !s.pristine.body.some((l) => FENCE_SHAPED.test(l))) return s.pristine.props.some((p) => /^id::/.test(p));
+  return g.properties(s).some((p) => propertyLineKey(p) === 'id');
+}
+
 function isLinked(g: Graph, s: Snapshot): boolean {
-  return g.backend === 'db' || g.properties(s).some((p) => propertyLineKey(p) === 'id');
+  return g.backend === 'db' || hasIdLine(g, s);
+}
+
+/** Whether every `key:: value` line of a written file-graph block sits where Logseq reads properties: right after the first line, or before a first line that is no title. */
+function propertiesInPlace(content: string): boolean {
+  const lines = content.split('\n');
+  const roles = fenceRoles(lines);
+  const at = lines.map((l, i) => (roles[i] === 'text' && PROPERTY_SHAPED.test(l) ? i : -1)).filter((i) => i >= 0);
+  if (at.length === 0) return true;
+  if (at.some((i, k) => k > 0 && i !== at[k - 1] + 1)) return false;
+  if (at[0] === 0) return lines.length === at.length || TITLELESS.test(lines[at.length]);
+  return at[0] === 1 && !TITLELESS.test(lines[0]);
+}
+const TITLELESS = /^\s*(?:```|~~~|\||>|[-*+]\s|\d+[.)]\s|#\+|\$\$)/;
+
+/** Whether `line` is one of the lines of `context`, as a root line, a point or a continuation line. */
+function contextHasLine(context: string, line: string): boolean {
+  const want = line.trimEnd();
+  return context.split('\n').some((l) => l.trimEnd() === want || l.replace(/^\t*(?:- | {2})?/, '').trimEnd() === want);
+}
+
+/**
+ * The context against the generator's truth, for blocks nothing has written
+ * to yet: every line of prose the user wrote is in it, and no property line
+ * is — unless the block's own layout put the properties inside a fence,
+ * where they are code to Logseq as well.
+ */
+function checkContext(g: Graph, snap: Map<string, Snapshot>, seen: Set<string>, context: string, tag: string, root: string, typing: boolean) {
+  // Property lines that are code somewhere in the tree — in a fence the
+  // generator wrote, or laid out under a fence opener — may be in the context,
+  // and a line cannot be told from an identical one on another block.
+  const allowed = new Set<string>();
+  for (const id of seen) {
+    const s = snap.get(id)!;
+    const gen = s.pristine;
+    if (!gen) {
+      // Rewritten already: any of its lines may be in the context, and the generator has no say.
+      g.raw(s).split('\n').forEach((l) => allowed.add(l.trim()));
+      continue;
+    }
+    if (gen.fencedProp) allowed.add(gen.fencedProp);
+    if (gen.body.some((l) => FENCE_SHAPED.test(l))) gen.props.forEach((p) => allowed.add(p));
+  }
+  for (const id of seen) {
+    const s = snap.get(id)!;
+    const gen = s.pristine;
+    if (!gen || (id === root && typing)) continue;
+    for (const raw of gen.body) {
+      const line = stripTag(raw, tag).trimEnd();
+      if (!line.trim()) continue;
+      if (!contextHasLine(context, line)) {
+        throw new Failure('context-has-prose', `${id}: the line ${JSON.stringify(raw)} the user wrote is not in the context:\n${context}`);
+      }
+    }
+    if (g.backend !== 'file' || gen.body.some((l) => FENCE_SHAPED.test(l))) continue;
+    for (const prop of gen.props) {
+      if (!allowed.has(prop) && contextHasLine(context, prop)) {
+        throw new Failure('context-no-properties', `${id}: the property line ${JSON.stringify(prop)} was sent to the model:\n${context}`);
+      }
+    }
+  }
 }
 
 function checkCommon(
@@ -587,14 +741,30 @@ function checkCommon(
       throw new Failure('outside-untouched', `${id} outside the subtree changed: ${JSON.stringify(s)} -> ${JSON.stringify(a)}`);
     }
   }
-  const { unseen } = seenAndUnseen(g, before, root, tag);
+  const { unseen } = seenAndUnseen(g, before, root);
   for (const id of inside) {
     const s = before.get(id)!;
     if (after.has(id)) continue;
     if (isLinked(g, s)) throw new Failure('linked-kept', `${id} is linked (${g.properties(s).join(', ')}) but was removed`);
     // The plugin's own tagged output may go with the point it answered; a note of the user's under it may not.
-    if (unseen.has(id) && !hasTag(g.text(s), tag) && g.text(s)) {
+    if (unseen.has(id) && !s.pluginOutput && g.text(s)) {
       throw new Failure('unseen-kept', `${id} was never shown to the model (under a tagged block) and was removed`);
+    }
+  }
+  // Blocks the plugin created carry no identity of another block, and are laid out as Logseq reads them.
+  for (const [id, a] of after) {
+    if (before.has(id) || g.backend !== 'file') continue;
+    if (splitProperties(a.content).properties.some((p) => propertyLineKey(p) === 'id')) {
+      throw new Failure('new-block-no-id', `${id} was created with an id property: ${JSON.stringify(a.content)}`);
+    }
+  }
+  if (g.backend === 'file') {
+    for (const [id, a] of after) {
+      const s = before.get(id);
+      if (s && s.content === a.content) continue;
+      if (!propertiesInPlace(a.content)) {
+        throw new Failure('properties-in-place', `${id} was written with property lines where Logseq does not read them: ${JSON.stringify(a.content)}`);
+      }
     }
   }
   for (const id of inside) {
@@ -617,20 +787,59 @@ function checkCommon(
     if (unseen.has(id) && (a.content !== s.content || a.title !== s.title)) {
       throw new Failure('unseen-kept', `${id} was never shown to the model but was rewritten: ${JSON.stringify(s)} -> ${JSON.stringify(a)}`);
     }
-    if (id !== root && !unseen.has(id) && tag && !hasTag(g.text(s), tag) && hasTag(g.text(a), tag)) {
+    if (id !== root && !unseen.has(id) && tag && !carriesTag(g.raw(s), tag) && carriesTag(g.raw(a), tag)) {
       throw new Failure('tag-on-root-only', `${id} gained the tag: ${JSON.stringify(g.text(a))}`);
     }
   }
-  // Tag appears once on the root, never doubled.
+  // Tag appears once on the root, never doubled — and, once the plugin has written the root, it is there.
   if (tag) {
-    const count = (t: string) => t.split(tag.trim()).length - 1;
+    const count = (t: string) => t.split(/\s+/).filter((tok) => tok === tag.trim()).length;
     const rb = before.get(root)!;
     const ra = after.get(root);
     const added = cmd.kind === 'append' ? count(cmd.text) : cmd.kind === 'property' ? count(cmd.value) : 0;
     if (ra && count(g.text(ra)) > Math.max(1, count(g.text(rb))) + added) {
       throw new Failure('tag-once', `root carries the tag ${count(g.text(ra))} times: ${JSON.stringify(g.text(ra))}`);
     }
+    if (ra && cmd.kind !== 'insert' && !carriesTag(g.raw(ra), tag)) {
+      throw new Failure('tag-present', `root was written by a ${cmd.kind} but does not carry the tag: ${JSON.stringify(g.raw(ra))}`);
+    }
   }
+}
+
+/**
+ * Blocks the model added must follow the point they came after, even when
+ * the plugin's own earlier output sits under the same parent: put at the end
+ * they would land below an old answer instead of next to their neighbour.
+ */
+function checkInsertPlacement(g: Graph, before: Map<string, Snapshot>, after: Map<string, Snapshot>, seen: Set<string>, tag: string) {
+  for (const [id, a] of after) {
+    if (before.has(id) || !a.parent || !before.has(a.parent)) continue;
+    const kids = after.get(a.parent)!.children;
+    // A child with no text of its own is not a point; the model saw its children in its place.
+    const seenKids = kids.filter((k) => before.has(k) && seen.has(k) && norm(g.text(before.get(k)!), tag));
+    if (seenKids.length === 0) continue;
+    const lastSeen = kids.indexOf(seenKids[seenKids.length - 1]);
+    const at = kids.indexOf(id);
+    const between = kids.slice(Math.min(lastSeen, at) + 1, Math.max(lastSeen, at));
+    if (at < lastSeen || between.some((k) => before.has(k))) {
+      throw new Failure('insert-follows-predecessor', `${id} landed at ${at} under ${a.parent}, past ${kids[lastSeen]} at ${lastSeen}; order: ${kids.join(', ')}`);
+    }
+  }
+}
+
+/**
+ * The plugin may only report blocks kept when there was something to keep:
+ * a block something links to, or a note of the user's it was not shown. On a
+ * DB graph every block counts as linked, so only a file graph can be held to it.
+ */
+function checkKeptJustified(g: Graph, before: Map<string, Snapshot>, root: string, kept: number, unseen: Set<string>) {
+  if (kept === 0 || g.backend !== 'file') return;
+  const justified = [...subtree(before, root)].some((id) => {
+    if (id === root) return false;
+    const s = before.get(id)!;
+    return hasIdLine(g, s) || (unseen.has(id) && !s.pluginOutput && Boolean(g.text(s)));
+  });
+  if (!justified) throw new Failure('kept-justified', `${kept} block(s) reported kept, but nothing under ${root} is linked or unseen`);
 }
 
 /** Runs one case, throwing a Failure describing the first broken invariant. */
@@ -648,8 +857,14 @@ async function run(c: Case): Promise<void> {
   for (const cmd of c.commands) {
     setEditing();
     const before = g.snapshot();
-    // What the plugin sees as the root's text right now (buffer included).
-    const rootText = (await ops.readText(root)) ?? '';
+    // The root's text as the user sees it right now, buffer included — what
+    // the plugin has to read. Computed by the harness; the code's reading is
+    // checked against it.
+    const rootText = g.liveBody(root, c.editing === 'typing');
+    const read = (await ops.readText(root)) ?? '';
+    if (norm(read, c.tag) !== norm(rootText, c.tag)) {
+      throw new Failure('reads-live', `the plugin read ${JSON.stringify(read)} but the user sees ${JSON.stringify(rootText)} (editing=${c.editing})`);
+    }
     // The buffer is what the user had typed when the command ran; once the
     // plugin has written the block, Logseq's editor shows the written text.
     const editingOff = () => {
@@ -665,9 +880,12 @@ async function run(c: Case): Promise<void> {
         break;
       case 'insert':
         for (const item of cmd.items) await ops.insertChild(root, withTag(item, c.tag));
+        // Without a tag the plugin's output cannot be told from the user's, and is not.
+        if (c.tag) g.markPluginOutput(before);
         break;
       case 'replace': {
         const context = stripTag(await ops.readContext(root, c.tag), c.tag).trim();
+        checkContext(g, before, seenAndUnseen(g, before, root).seen, context, c.tag, root, c.editing === 'typing');
         const text = reply(cmd.reply, context);
         let result;
         try {
@@ -682,14 +900,16 @@ async function run(c: Case): Promise<void> {
           continue;
         }
         const after = g.snapshot();
-        checkCommon(g, before, after, root, c.tag, cmd);
         if ('skipped' in result) {
           if (JSON.stringify([...after]) !== JSON.stringify([...before])) {
             throw new Failure('refusal-writes-nothing', `refused (${result.skipped}) but wrote ${g.log.join('; ')}`);
           }
           continue;
         }
-        const { seen } = seenAndUnseen(g, before, root, c.tag);
+        checkCommon(g, before, after, root, c.tag, cmd);
+        const { seen, unseen } = seenAndUnseen(g, before, root);
+        checkInsertPlacement(g, before, after, seen, c.tag);
+        checkKeptJustified(g, before, root, result.kept, unseen);
         const rootIsCode = isFenceLine(stripTag(rootText, c.tag).trim().split('\n')[0]);
         const parsed = parseOutline(text, { unwrapFence: !rootIsCode });
         const reparsed = parsed && parseOutline(renderOutline(parsed));
@@ -698,6 +918,9 @@ async function run(c: Case): Promise<void> {
         const rootChanged: ReplyKind[] = ['chatter', 'unclosed'];
         // Format variants of the same outline must land like the outline itself.
         const identityClass: ReplyKind[] = ['identity', 'edit', 'stars', 'numbered', 'spaces', 'crlf', 'fenced', 'chatter', 'unclosed'];
+        // A spoiled closer changes one point's text, never the shape: the fence it
+        // fails to close must not run into the next point and take it as code.
+        const shapeOnly = cmd.reply === 'spoiled' && text !== context;
         // A code-block root is not unwrapped: a reply that starts with a bare fence is
         // its content, whatever the model meant by it. Documented, not checked.
         const codeRootWrapped = rootIsCode && (cmd.reply === 'fenced' || cmd.reply === 'unclosed');
@@ -724,11 +947,14 @@ async function run(c: Case): Promise<void> {
           console.log(`seed ${c.seed} ${cmd.reply}\n-- context --\n${context}\n-- reply --\n${text}\n-- flags -- untabbedList=${untabbedList} codeRootWrapped=${codeRootWrapped} identity=${identityClass.join(',')}\n-- log --\n${g.log.join('\n')}`);
         }
         // Known limitation: a root line led by "- " is read as the model's bullet, not the block's text.
-        if (/^\s*[-*+•]\s/.test(context)) {
+        // And a line of the root's own text that looks like a tab-indented sub-point cannot be told
+        // from one — a state a documented limitation on an earlier command can leave behind.
+        if (/^\s*[-*+•]\s/.test(context) || /^\t+(?:[-*+•]\s|\d+[.)]\s)/m.test(stripTag(rootText, c.tag))) {
           limitations.rootBullet++;
           identityClass.length = 0;
         }
-        if (identityClass.includes(cmd.reply)) {
+        // The known limitations empty identityClass; a shape-only reply is held to the same limits.
+        if (identityClass.includes(cmd.reply) || (shapeOnly && identityClass.length > 0)) {
           const expect = cmd.reply === 'edit' ? mark : (t: string) => t;
           const trimmed = (t: string) => t.split('\n').map((l) => l.trimEnd()).filter((l) => l).join('\n');
           const roundTrips = trimmed(renderOutline(parseOutline(context)!)) === trimmed(context);
@@ -742,13 +968,17 @@ async function run(c: Case): Promise<void> {
             // A block with no text of its own is not a point; its children stand in for it.
             const blank = id !== root && !norm(g.text(s), c.tag);
             const want = expect(norm(id === root ? rootText : g.text(s), c.tag));
-            if (blank || (id === root && rootChanged.includes(cmd.reply))) {
+            if (blank || shapeOnly || (id === root && rootChanged.includes(cmd.reply))) {
               // fall through to the shape check only
             } else if (norm(g.text(a), c.tag) !== want) {
               throw new Failure('own-text', `${id} got someone else's text on a ${cmd.reply} reply: ${JSON.stringify(norm(g.text(s), c.tag))} -> ${JSON.stringify(norm(g.text(a), c.tag))}, wanted ${JSON.stringify(want)}`);
             }
             if (JSON.stringify(a.children) !== JSON.stringify(s.children)) {
               throw new Failure('shape-kept', `${id} children changed on a ${cmd.reply} reply: ${s.children} -> ${a.children}; log: ${g.log.join('; ')}`);
+            }
+            const was = paragraphBreaks(id === root ? rootText : g.text(s), c.tag);
+            if (!shapeOnly && paragraphBreaks(g.text(a), c.tag) < was) {
+              throw new Failure('paragraph-breaks', `${id} lost a blank line on a ${cmd.reply} reply: ${JSON.stringify(g.text(s))} -> ${JSON.stringify(g.text(a))}`);
             }
           }
         }
@@ -820,7 +1050,7 @@ function* smaller(c: Case): Generator<Case> {
     if (cmd.kind === 'replace' && cmd.twice) yield { ...c, commands: c.commands.map((x, j) => (j === i ? { ...cmd, twice: false } : x)) };
   }
   // Plain neighbours, no editing.
-  const plain: GenBlock = { body: ['x'], props: [], layout: 'logseq', children: [] };
+  const plain: GenBlock = { body: ['x'], props: [], layout: 'logseq', tagged: false, children: [] };
   if (JSON.stringify(c.before) !== JSON.stringify(plain)) yield { ...c, before: plain };
   if (JSON.stringify(c.after) !== JSON.stringify(plain)) yield { ...c, after: plain };
   if (c.editing !== 'none') yield { ...c, editing: 'none' };
@@ -828,8 +1058,12 @@ function* smaller(c: Case): Generator<Case> {
   const variants = (b: GenBlock): GenBlock[] => {
     const out: GenBlock[] = [];
     for (let i = 0; i < b.children.length; i++) out.push({ ...b, children: b.children.filter((_, j) => j !== i) });
-    for (let i = 0; i < b.body.length; i++) out.push({ ...b, body: b.body.filter((_, j) => j !== i) });
+    for (let i = 0; i < b.body.length; i++) {
+      const body = b.body.filter((_, j) => j !== i);
+      out.push({ ...b, body, ...(b.fencedProp && !body.includes(b.fencedProp) ? { fencedProp: undefined } : {}) });
+    }
     for (let i = 0; i < b.props.length; i++) out.push({ ...b, props: b.props.filter((_, j) => j !== i) });
+    if (b.tagged) out.push({ ...b, tagged: false });
     for (let i = 0; i < b.body.length; i++) {
       if (b.body[i].length > 1 && !/^(```|~~~)/.test(b.body[i])) out.push({ ...b, body: b.body.map((l, j) => (j === i ? l.slice(0, Math.ceil(l.length / 2)) : l)) });
     }
@@ -871,7 +1105,7 @@ async function shrink(c: Case, original: Failure): Promise<{ c: Case; f: Failure
 
 function describeCase(c: Case): string {
   const block = (b: GenBlock, depth: number): string =>
-    [`${'  '.repeat(depth)}- body=${JSON.stringify(b.body)} props=${JSON.stringify(b.props)}${b.layout === 'end' ? ' layout=end' : ''}`, ...b.children.map((ch) => block(ch, depth + 1))].join('\n');
+    [`${'  '.repeat(depth)}- body=${JSON.stringify(b.body)} props=${JSON.stringify(b.props)}${b.layout === 'end' ? ' layout=end' : ''}${b.tagged ? ' tagged' : ''}`, ...b.children.map((ch) => block(ch, depth + 1))].join('\n');
   return [
     `seed=${c.seed} backend=${c.backend} tag=${JSON.stringify(c.tag)} editing=${c.editing}`,
     `commands=${JSON.stringify(c.commands)}`,

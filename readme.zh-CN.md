@@ -214,8 +214,11 @@ Tavily 在搜索时就把正文清洗好一并返回，省掉了单独抓取这�
 | **Web Search API Key** | *(空)* | 可选。[Tavily](https://tavily.com) 的 key，用于启用 `/Verify Online` |
 | **Custom Prompts** | 关闭 | 自定义命令，见下文 |
 
-前五项改完即生效，下一次执行命令时就会用新值，不需要重载插件。Web Search API Key 则不同：
-它决定 `/Verify Online` 是否注册，所以填入或清空之后要重载插件 —— 插件会弹通知提醒。
+前五项改完即生效，下一次执行命令时就会用新值，不需要重载插件。某一项被清空 —— 哪怕只剩几个空格 ——
+就算没填，会退回默认值。Web Search API Key 则不同：它决定 `/Verify Online` 是否注册，所以填入或清空
+之后要重载插件 —— 命令集合发生变化时插件会弹一次通知提醒。
+
+API Key 还没填的时候，插件加载时会提示一次，免得刚装上的人对着失败的命令猜原因。
 
 Temperature 这一栏只要你改动过，Logseq 就会把它存成文本（`"0.3"` 而不是 `0.3`），插件两种都能读。
 早先的版本读不了文本形式，于是只要这一栏被碰过，所有命令就都悄悄按 DeepSeek 自己的默认值 `1.0` 在跑。
@@ -229,6 +232,10 @@ Temperature 这一栏只要你改动过，Logseq 就会把它存成文本（`"0.
 - **`deepseek-reasoner`** —— 回答前会一步步推理，适合分析和难题，但明显更慢也更贵。
   它的思考过程不会写进块里；跑 `/Verify Online` 时，每轮搜索之间会按 API 的要求把这些推理回传给模型，
   答案出来后就丢弃。Temperature 不会发给它。
+
+DeepSeek 的 API 现在在自己的报错里把模型叫做 `deepseek-flash` 和 `deepseek-v4-pro`；`deepseek-chat`
+和 `deepseek-reasoner` 仍然可用，会映射到前者。Model 一栏两种写法都行。填了 DeepSeek 不认识的名字，
+会报 `DeepSeek does not know the model "…"`，并列出它认识的那些。
 
 ## 自定义命令
 
@@ -279,8 +286,10 @@ Temperature 这一栏只要你改动过，Logseq 就会把它存成文本（`"0.
   Logseq 宏都不会出问题。
 - 自定义命令如果和内置命令重名，以你的为准。
 
-如果某条配置写坏了 —— 缺 `name`、缺 `prompt`，或者 `output` 不是那四个值之一 ——
-插件会跳过它，并在加载时告诉你是哪一条。
+如果某条配置写坏了 —— 缺 `name`、缺 `prompt`、`output` 不是那四个值之一，或者 `format` 既不是 `[]`
+也不是对象 —— 插件会跳过它，并在加载时告诉你是哪一条。整个设置项形状不对也会同样提示：该写
+`{"enable": …, "prompts": […]}` 对象的地方写成了列表，或者 `enable` 开着但 `prompts` 缺失、不是列表。
+自定义命令这块没有任何一种写错会被悄悄吞掉。
 
 ## 出问题的时候
 
@@ -288,7 +297,12 @@ Temperature 这一栏只要你改动过，Logseq 就会把它存成文本（`"0.
 
 | 提示 | 怎么办 |
 | --- | --- |
+| `DeepSeek Assistant: no API key set yet. …` | 插件加载时发现没填 Key，只提示这一次。把 Key 填进设置 |
 | `No DeepSeek API key configured. Set it in the plugin settings.` | 把 Key 填进设置 |
+| `The API Base URL must start with https:// — it is "…".` | API Base URL 没写协议头。默认值是 `https://api.deepseek.com/v1` |
+| `Nothing answers at … (404). Check the API Base URL setting …` | 这个地址下什么都没有，多半是路径打错了。把 API Base URL 改回默认值 |
+| `DeepSeek request failed (…): … answered with a web page, not an API reply.` | 地址指向的是网站而不是 API —— 比如把 `api.deepseek.com` 写成了 `platform.deepseek.com`。把 API Base URL 改回默认值 |
+| `DeepSeek does not know the model "…" (400): …` | Model 一栏（或某条自定义命令的 `model`）填了 DeepSeek 没有的模型，提示里会列出它有的 |
 | `Invalid DeepSeek API key (401): …` | 重新把 Key 复制到设置里 |
 | `DeepSeek account has insufficient balance (402): …` | 去 platform.deepseek.com 充值 |
 | `DeepSeek rate limit reached (429): …` | 等一会儿再试 |
@@ -306,15 +320,15 @@ Temperature 这一栏只要你改动过，Logseq 就会把它存成文本（`"0.
 | `Invalid Tavily API key (401): …` | 重新把 Tavily 的 key 复制到设置里 |
 | `Tavily rate limit or monthly quota reached (429): …` | 这个月的搜索额度用完了。等下月重置，或者升级套餐 |
 | `Tavily plan limit reached (432): …` | 当前 Tavily 套餐不允许这次请求，到 Tavily 控制台看看 |
-| `DeepSeek Assistant ignored N custom prompt(s): …` | 有自定义命令配置写坏了，提示里会指出是哪条 |
-| `Available commands changed. Reload the plugin to update the slash menu.` | 你新增、重命名或删除了自定义命令，或者填入 / 清空了 Web Search API Key |
+| `DeepSeek Assistant ignored N custom prompt(s): …` | 有自定义命令配置写坏了，或者整个 `customPrompts` 设置项形状不对，提示里会说明是哪里 |
+| `Available commands changed. Reload the plugin to update the slash menu.` | 你新增、重命名或删除了自定义命令，或者填入 / 清空了 Web Search API Key。每次这类变化只提示一次 |
 
 还是不行？按 `Ctrl+Shift+I` 打开 Logseq 开发者控制台，完整的错误会打印在那里。
 
 ## 开发者信息
 
 ```sh
-pnpm test    # 276 个单元测试（vitest）
+pnpm test    # 332 个测试（vitest），其中一个是覆盖块写入流程的属性测试
 pnpm lint    # 对 src/ 和 test/ 跑 eslint
 pnpm build   # tsc + vite，产物在 dist/
 ```
@@ -323,7 +337,8 @@ pnpm build   # tsc + vite，产物在 dist/
 
 | 文件 | 职责 |
 | --- | --- |
-| `src/main.ts` | Logseq 胶水层：注册命令、读写块。没有单元测试 |
+| `src/main.ts` | 唯一碰 `logseq` 全局对象的文件：几行代码把 Logseq 接到 `plugin.ts` 上。没有单元测试 |
+| `src/plugin.ts` | 读设置、注册并分发斜杠命令、执行一条命令、把失败变成通知。用假的宿主测试 —— 刚装上什么都没配、手改过的设置文件、用到一半被清空的 key |
 | `src/graph.ts` | 文件图 / DB 图适配层，所有对块的读写都走这里 |
 | `src/block.ts` | 块内容处理 —— 属性拆分、标签、编辑器与数据库内容合并 |
 | `src/outline.ts` | 子树改写：把模型返回的大纲解析回树，并规划哪些块更新、插入、删除或保留 |

@@ -70,7 +70,9 @@ const OUTLINE_POINT = /^\t+(?:[-*+•]\s|\d+[.)]\s)/;
  *   without the opener swallows a sub-point itself — then the fault lies
  *   elsewhere in the reply, and the opener stays.
  * - An opener that pairs with nothing at all is a stray wrapper on a prose
- *   block and goes; on a code block it is the block's own text.
+ *   block and goes; on a code block it is the block's own text — as is one
+ *   that pairs with the block's own closer, whatever else in the reply is
+ *   left unpaired.
  * - Anything else — an empty code block at the top, say — is content.
  */
 function unwrapped(lines: string[], closed: boolean): string[] {
@@ -90,6 +92,9 @@ function unwrapped(lines: string[], closed: boolean): string[] {
   if (outer[first] !== 'open') {
     return closed ? content : lines;
   }
+  // On a code block the opener pairs with the block's own closer: it is the
+  // block's text, whatever a spoiled fence further down leaves unpaired.
+  if (!closed) return lines;
   const swallows = (rows: string[], roles: FenceRole[]) =>
     rows.some((line, i) => roles[i] === 'code' && OUTLINE_POINT.test(line));
   const unpaired = lines.some((line, i) => outer[i] === 'text' && fenceMarker(bulletless(line)) !== undefined);
@@ -127,15 +132,15 @@ export function parseOutline(text: string, options: ParseOptions = {}): OutlineN
   const raw = text.replace(/\r\n?/g, '\n').split('\n');
   const lines = unwrapped(raw, options.unwrapFence ?? false);
   // A point's fence opens on its bullet line, so the bullet is looked past.
-  // And a fence inside a sub-point stops at the next point at its depth or
-  // above: code under a point at depth d is indented d tabs and two spaces,
-  // so a bullet led by d tabs or fewer cannot be a line of it. Without this a
-  // closing fence the model spoiled ("``` and so on") would run into the next
-  // point's code block and take the point with it.
+  // And a fence inside a sub-point stops at the next point, at any depth:
+  // code under a point at depth d is indented d tabs and two spaces, so a
+  // bullet led by tabs alone — fewer, as many, or more — cannot be a line of
+  // it. Without this a closing fence the model spoiled ("``` and so on")
+  // would run into the next fence below, in a sibling or in a sub-point, and
+  // take every point in between with it as code.
   const roles = fenceRoles(lines, bulletless, (opener, line) => {
     const depth = (INDENT.exec(opener)![0].match(/\t/g) ?? []).length;
-    const point = /^(\t*)(?:[-*+•]\s|\d+[.)]\s)/.exec(line);
-    return depth >= 1 && point !== null && point[1].length <= depth;
+    return depth >= 1 && /^\t*(?:[-*+•]\s|\d+[.)]\s)/.test(line);
   });
   const tabbed = lines.some((line) => line.startsWith('\t'));
 
