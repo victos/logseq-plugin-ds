@@ -1,3 +1,18 @@
+# [1.1.0](https://github.com/victos/logseq-plugin-ds/compare/v1.0.0...v1.1.0) (2026-09-16)
+
+
+### Bug Fixes
+
+* 14 rewrite defects found by fuzzing the note-writing pipeline ([576387b](https://github.com/victos/logseq-plugin-ds/commit/576387b32d0bc87e454ae3783567a91fd1c9a346))
+* five more ways a rewrite could damage a block ([6da3963](https://github.com/victos/logseq-plugin-ds/commit/6da39635ffff7c8e9dc8e433007b911119f5419d))
+* make the forced answer actually work on deepseek-reasoner ([4cc3630](https://github.com/victos/logseq-plugin-ds/commit/4cc3630d788d06ba57e9aa38810b678bb72da075))
+* three bugs that reached v1.0.0, two of them note-corrupting ([40e44ad](https://github.com/victos/logseq-plugin-ds/commit/40e44ad920e76faf184bc9d334d12e399e1e5db8))
+
+
+### Features
+
+* add /Verify Online, gated on a search API key ([b97feb9](https://github.com/victos/logseq-plugin-ds/commit/b97feb9fd637decf95d8f9b76a052ef47a6cb872))
+
 # 1.0.0 (2026-09-15)
 
 
