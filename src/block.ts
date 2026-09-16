@@ -25,7 +25,13 @@ export interface SplitContent {
 // `key:: value` or a bare `key::`. The whitespace after `::` is required so that
 // `std::vector` or `a::b` inside prose is not mistaken for a property.
 const PROPERTY_LINE = /^\s*([^\s:]+)::(?:\s.*)?$/;
-const FENCE_LINE = /^\s*(```|~~~)/;
+// A fence opener or closer on a line of its own; "```x```" inline is neither.
+const FENCE_LINE = /^\s*(?:```|~~~)(?!.*(?:```|~~~)\s*$)/;
+
+/** Whether the line opens or closes a fenced code block. */
+export function isFenceLine(line: string): boolean {
+  return FENCE_LINE.test(line);
+}
 
 export function propertyLineKey(line: string): string | undefined {
   return PROPERTY_LINE.exec(line)?.[1].toLowerCase();
@@ -56,7 +62,7 @@ export function splitProperties(content: string): SplitContent {
   let inFence = false;
 
   for (const line of content.split('\n')) {
-    if (FENCE_LINE.test(line)) {
+    if (isFenceLine(line)) {
       inFence = !inFence;
       body.push(line);
     } else if (!inFence && propertyLineKey(line) !== undefined) {
@@ -190,13 +196,34 @@ export function hasTag(text: string, tag: string): boolean {
   return tagPattern(tag)?.test(text) ?? false;
 }
 
-/** Appends the tag to the end of `text` unless it is already present. */
+/** Whether the last line of `text` is a fence marker, which nothing may share. */
+function endsWithFenceLine(text: string): boolean {
+  return isFenceLine(text.slice(text.lastIndexOf('\n') + 1));
+}
+
+/**
+ * Appends the tag to the end of `text` unless it is already present. A tag on
+ * the same line as a closing fence would stop it closing ("``` #tag" is not a
+ * fence, and everything after it renders as code), so after a fence the tag
+ * goes on a line of its own.
+ */
 export function withTag(text: string, tag: string): string {
   const token = tag.trim();
   if (!token || hasTag(text, tag)) {
     return text;
   }
-  return text ? `${text}${tag}` : token;
+  if (!text) {
+    return token;
+  }
+  return endsWithFenceLine(text) ? `${text}\n${token}` : `${text}${tag}`;
+}
+
+/** `text` followed by `addition`: on the same line, or below a closing fence. */
+export function appendToText(text: string, addition: string): string {
+  if (!text) {
+    return addition;
+  }
+  return endsWithFenceLine(text) ? `${text}\n${addition}` : `${text} ${addition}`;
 }
 
 /** Removes the tag token from text before it is sent to the model. */
@@ -250,9 +277,18 @@ export async function readCurrentContent(reader: BlockReader, uuid: string): Pro
   return saved;
 }
 
+// A first line that does not start a paragraph or heading: a code fence, a
+// table row, a quote, a list item, a `#+BEGIN` block, display math. Logseq
+// treats such a block as having no title line.
+const TITLELESS_FIRST_LINE = /^\s*(?:```|~~~|\||>|[-*+]\s|\d+[.)]\s|#\+|\$\$)/;
+
 /**
- * Reassembles a block: first body line, then the property lines, then the
- * remaining body. That is where Logseq expects block properties to live.
+ * Reassembles a block the way Logseq lays one out: first body line, then the
+ * property lines, then the rest. A block whose first line is not a title —
+ * one that opens with a code fence, say — keeps its properties in front
+ * instead: put after the fence line they would sit inside the code, where
+ * neither Logseq nor {@link splitProperties} reads them as properties, and an
+ * `id::` written there no longer holds the block's references.
  */
 export function joinBlock(body: string, properties: string[]): string {
   if (properties.length === 0) {
@@ -262,6 +298,9 @@ export function joinBlock(body: string, properties: string[]): string {
     return properties.join('\n');
   }
   const [first, ...rest] = body.split('\n');
+  if (TITLELESS_FIRST_LINE.test(first)) {
+    return [...properties, first, ...rest].join('\n');
+  }
   return [first, ...properties, ...rest].join('\n');
 }
 
@@ -285,8 +324,7 @@ export function composeProperty(content: string, key: string, value: string, tag
 /** `append` output: response follows the existing text; properties are preserved. */
 export function composeAppend(content: string, response: string, tag: string): string {
   const { body, properties } = splitProperties(content);
-  const text = body ? `${body} ${response}` : response;
-  return joinBlock(withTag(text, tag), properties);
+  return joinBlock(withTag(appendToText(body, response), tag), properties);
 }
 
 /** `replace` output: response replaces the text; properties are preserved. */

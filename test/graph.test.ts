@@ -142,6 +142,11 @@ describe('FileGraphOps', () => {
     expect(insertOpts).toEqual([undefined]);
   });
 
+  it('reads the block’s own prose without its property lines', async () => {
+    const { editor } = fakeEditor({ content: saved });
+    expect(await new FileGraphOps(editor).readText('u')).toBe('Meeting notes');
+  });
+
   it('keeps properties when replacing the text', async () => {
     const { editor, writes } = fakeEditor({ content: saved });
     await new FileGraphOps(editor).replaceText('u', 'New text', TAG);
@@ -189,6 +194,17 @@ describe('DbGraphOps', () => {
       { editing: 'u', buffer: 'being typed' },
     );
     expect(await new DbGraphOps(editor).readContext('u', TAG)).toBe('being typed\n\t- kid');
+  });
+
+  it('ignores the editor buffer when a different block is being edited', async () => {
+    const { editor } = fakeEditor({ title: 'saved' }, { editing: 'other', buffer: 'elsewhere' });
+    expect(await new DbGraphOps(editor).readText('u')).toBe('saved');
+  });
+
+  it('puts an appended answer below a closing code fence, not on its line', async () => {
+    const { editor, writes } = fakeEditor({ title: '```\nx\n```' });
+    await new DbGraphOps(editor).appendText('u', 'More.', TAG);
+    expect(writes).toEqual([`\`\`\`\nx\n\`\`\`\nMore.${TAG}`]);
   });
 
   it('treats a non-string title as empty rather than leaking it', async () => {
@@ -302,7 +318,7 @@ describe('rewriteSubtree', () => {
   function treeEditor(root: Record<string, unknown>) {
     const writes: Array<[string, string]> = [];
     const removed: string[] = [];
-    const inserted: Array<[string, string]> = [];
+    const inserted: Array<[string, string, boolean]> = [];
     let n = 0;
     const editor: EditorApi = {
       async getBlock(uuid) {
@@ -320,8 +336,8 @@ describe('rewriteSubtree', () => {
       async updateBlock(uuid, content) {
         writes.push([uuid, content]);
       },
-      async insertBlock(parent, content) {
-        inserted.push([parent as string, content]);
+      async insertBlock(parent, content, opts) {
+        inserted.push([parent as string, content, Boolean(opts?.sibling)]);
         return { uuid: `new-${++n}` };
       },
       async removeBlock(uuid) {
@@ -406,10 +422,11 @@ describe('rewriteSubtree', () => {
   it('file graph: inserts when the rewrite has more lines', async () => {
     const { editor, inserted } = treeEditor({ uuid: 'root', content: 'Old', children: [] });
     await new FileGraphOps(editor).rewriteSubtree('root', 'R\n\t- one\n\t\t- deep\n\t- two', TAG);
+    // 'two' follows 'one' as its sibling, not as another last child of the root.
     expect(inserted).toEqual([
-      ['root', 'one'],
-      ['new-1', 'deep'],
-      ['root', 'two'],
+      ['root', 'one', false],
+      ['new-1', 'deep', false],
+      ['new-1', 'two', true],
     ]);
   });
 
@@ -441,7 +458,7 @@ describe('rewriteSubtree lines up with what the model was shown', () => {
   function treeEditor(root: Record<string, unknown>) {
     const writes: Array<[string, string]> = [];
     const removed: string[] = [];
-    const inserted: Array<[string, string]> = [];
+    const inserted: Array<[string, string, boolean]> = [];
     const editor: EditorApi = {
       async getBlock(uuid) {
         const find = (b: Record<string, unknown>): Record<string, unknown> | null => {
@@ -458,8 +475,8 @@ describe('rewriteSubtree lines up with what the model was shown', () => {
       async updateBlock(uuid, content) {
         writes.push([uuid, content]);
       },
-      async insertBlock(parent, content) {
-        inserted.push([parent as string, content]);
+      async insertBlock(parent, content, opts) {
+        inserted.push([parent as string, content, Boolean(opts?.sibling)]);
         return { uuid: 'new' };
       },
       async removeBlock(uuid) {
@@ -556,6 +573,118 @@ describe('rewriteSubtree lines up with what the model was shown', () => {
       ['a', 'L1 better\nid:: 1\nL2 better'],
     ]);
     expect(inserted).toEqual([]);
+  });
+
+  // /Expand added a point. It belongs after the last point, not after the
+  // /Ask AI answer that happens to be the parent's last child.
+  it('file graph: inserts a new line after the last point, not after the plugin’s own output', async () => {
+    const { editor, writes, inserted } = treeEditor({
+      uuid: 'root',
+      content: 'Q',
+      children: [{ uuid: 'b', content: 'note' }, { uuid: 'ai', content: `The answer.${TAG}` }],
+    });
+    await new FileGraphOps(editor).rewriteSubtree('root', 'Q\n\t- note\n\t- extra', TAG);
+    expect(writes).toEqual([['root', `Q${TAG}`], ['b', 'note']]);
+    expect(inserted).toEqual([['b', 'extra', true]]);
+  });
+
+  // The answer under `b` was hidden from the model, and the user has referenced
+  // it. Removing `b` as surplus would take the answer, and the reference, with it.
+  it('file graph: keeps a surplus block sheltering a referenced block the model never saw', async () => {
+    const { editor, removed } = treeEditor({
+      uuid: 'root',
+      content: 'Root',
+      children: [
+        { uuid: 'a', content: 'one' },
+        { uuid: 'b', content: 'two', children: [{ uuid: 'ai', content: `Answer.${TAG}\nid:: 6690-ref` }] },
+      ],
+    });
+    const kept = await new FileGraphOps(editor).rewriteSubtree('root', 'R\n\t- merged', TAG);
+    expect(removed).toEqual([]);
+    expect(kept).toBe(1);
+  });
+
+  it('file graph: looks all the way down a hidden subtree for a referenced block', async () => {
+    const { editor, removed } = treeEditor({
+      uuid: 'root',
+      content: 'Root',
+      children: [
+        { uuid: 'a', content: 'one' },
+        {
+          uuid: 'b',
+          content: 'two',
+          children: [{ uuid: 'ai', content: `Answer.${TAG}`, children: [{ uuid: 'deep', content: 'detail\nid:: 6690-ref' }] }],
+        },
+      ],
+    });
+    const kept = await new FileGraphOps(editor).rewriteSubtree('root', 'R\n\t- merged', TAG);
+    expect(removed).toEqual([]);
+    expect(kept).toBe(1);
+  });
+
+  it('file graph: keeps a surplus block whose empty child carries id::', async () => {
+    const { editor, removed } = treeEditor({
+      uuid: 'root',
+      content: 'Root',
+      children: [
+        { uuid: 'a', content: 'one' },
+        { uuid: 'b', content: 'two', children: [{ uuid: 'e', content: 'id:: 6690-ref' }] },
+      ],
+    });
+    const kept = await new FileGraphOps(editor).rewriteSubtree('root', 'R\n\t- merged', TAG);
+    expect(removed).toEqual([]);
+    expect(kept).toBe(1);
+  });
+
+  it('file graph: still removes a surplus block that merely mentions id:: in its prose', async () => {
+    const { editor, removed } = treeEditor({
+      uuid: 'root',
+      content: 'Root',
+      children: [{ uuid: 'a', content: 'one' }, { uuid: 'b', content: 'about the id:: syntax' }],
+    });
+    await new FileGraphOps(editor).rewriteSubtree('root', 'R\n\t- merged', TAG);
+    expect(removed).toEqual(['b']);
+  });
+
+  it('db graph: a whitespace-only title is no text, so its children stand in for it', async () => {
+    const { editor, writes } = treeEditor({
+      uuid: 'root',
+      title: 'Root',
+      children: [
+        { uuid: 'w', title: '  ', children: [{ uuid: 'g', title: 'deep' }] },
+        { uuid: 'b', title: 'note' },
+      ],
+    });
+    const ops = new DbGraphOps(editor);
+    expect(await ops.readContext('root', TAG)).toBe('Root\n\t- deep\n\t- note');
+    await ops.rewriteSubtree('root', 'R\n\t- deep polished\n\t- note polished', TAG);
+    expect(writes).toEqual([['root', `R${TAG}`], ['g', 'deep polished'], ['b', 'note polished']]);
+  });
+
+  it('keeps inserted grandchildren in order, each after the one before', async () => {
+    const { editor, inserted } = treeEditor({ uuid: 'root', content: 'Root', children: [] });
+    let n = 0;
+    editor.insertBlock = async (at, content, opts) => {
+      inserted.push([at as string, content, Boolean(opts?.sibling)]);
+      return { uuid: `new-${++n}` };
+    };
+    await new FileGraphOps(editor).rewriteSubtree('root', 'R\n\t- one\n\t\t- d1\n\t\t- d2\n\t- two', TAG);
+    expect(inserted).toEqual([
+      ['root', 'one', false],
+      ['new-1', 'd1', false],
+      ['new-2', 'd2', true],
+      ['new-1', 'two', true],
+    ]);
+  });
+
+  it('drops the subtree of an insert whose block the host did not hand back', async () => {
+    const { editor, inserted } = treeEditor({ uuid: 'root', content: 'Root', children: [] });
+    editor.insertBlock = async (parent, content) => {
+      inserted.push([parent as string, content, false]);
+      return {};
+    };
+    await new FileGraphOps(editor).rewriteSubtree('root', 'R\n\t- one\n\t\t- deep', TAG);
+    expect(inserted).toEqual([['root', 'one', false]]);
   });
 
   // getBlock may hand back `[":uuid", id]` tuples among the children; they are

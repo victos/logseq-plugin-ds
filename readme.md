@@ -69,8 +69,9 @@ Answers come back in the language you wrote in — ask in Chinese, get Chinese. 
 built into the preset prompts only; custom prompts say whatever you tell them to.)
 
 Everything the AI writes is tagged `#[[🤖]]` so you can find it later: replaced or appended
-text, every child block it inserts, and a block that gained a property. You can change or
-remove the tag in the settings.
+text, every child block it inserts, and a block that gained a property. The tag goes at the end
+of the text — or on the line after a closing code fence, since `` ``` #[[🤖]] `` would stop the
+fence closing. You can change or remove the tag in the settings.
 
 ### Giving it context
 
@@ -117,22 +118,29 @@ graph is open — checked per command, so switching graphs needs no reload.
 | What `/Summarize` writes | a `summarize:: …` line | a `summarize` property via the API |
 
 On a file graph the property lines are split off before the text is sent, and restored
-untouched afterwards. On a DB graph the text can be replaced without touching properties at
+untouched afterwards — after the first line, or in front of the block when it opens with a
+code fence, a table, a quote or a list, which is where Logseq itself keeps them for such blocks
+(after a fence line they would sit inside the code, and an `id::` there no longer holds the
+block's references). On a DB graph the text can be replaced without touching properties at
 all, so nothing has to be reassembled.
 
 **The DB path has been exercised in a real DB graph, in Logseq, by hand.** `/Ask AI`,
 `/Tone:`, `/Summarize` and `/Shorten` were each run on a block with children; the property was
 created and set, the subtree was rewritten, and a `((reference))` to one of the rewritten
 children still resolved afterwards. `marketplace/manifest.json` declares `supportsDB: true` on
-that basis.
+that basis. One thing added since has not run inside Logseq on either backend: when a rewrite
+adds a point under a parent that already has one, it is now inserted as the sibling after that
+point (`insertBlock(…, { sibling: true })`) rather than as the parent's last child.
 
-Two details were confirmed separately through Logseq's CLI rather than inferred from type
+Three details were confirmed separately through Logseq's CLI rather than inferred from type
 definitions:
 
 - A `#[[🤖]]` tag written into a block's text stays in the text: the DB records a reference to
   the `🤖` page but does not move the tag into a separate tag field, and reads the title back
   with the tag spelled out. So the tag behaviour described above — including skipping tagged
   children — holds on both backends.
+- A title that ends with a code fence and then the tag on its own line is stored exactly so;
+  nothing folds the tag back onto the fence line.
 - A DB graph refuses to put a property on a block until that property exists
   (`Property :summarize doesn't exist yet`), and then stores it under a namespaced ident of
   its own, not under the name given. `/Summarize` therefore defines the property before
@@ -161,17 +169,25 @@ or split lines: extra lines become new blocks, and blocks left over are removed.
 
 One thing is never removed: a block something links to. On a file graph that is a block
 carrying `id::`, which Logseq writes only once a reference exists; on a DB graph the plugin
-cannot ask what links to a block, so **nothing is removed there at all**. Either way the
-surplus block stays put and a notification tells you how many were kept, for you to delete by
-hand.
+does not query what links to a block, so **nothing is removed there at all**. The rule reaches
+into what the model was not shown: a surplus block is also kept when a referenced block sits
+under it inside the plugin's own tagged output, or under an empty block. Either way the surplus
+block stays put and a notification tells you how many were kept, for you to delete by hand.
 
 A block with several lines — two paragraphs, a fenced code block — stays one block: a line
 without a bullet is read as the continuation of the point above it. The one shape the plugin
 cannot tell apart is a Markdown list written *inside* a single block (`- a` and `- b` on their
-own lines); that comes back as child blocks. Children the model was never shown are left out
-when the rewrite is lined up against the existing blocks: the plugin's own tagged output, and
-blocks with no text of their own. So `/Polish` after `/Ask AI` on the same block leaves the
-answer where it is instead of writing over it.
+own lines): that comes back as child blocks, and if the block already has children, the list
+items take their places in the line-up and the children are overwritten with them. Children the
+model was never shown are left out when the rewrite is lined up against the existing blocks:
+the plugin's own tagged output, and blocks with no text of their own. So `/Polish` after
+`/Ask AI` on the same block leaves the answer where it is instead of writing over it, and a
+point the rewrite adds goes in right after the last point the model saw, not after that answer.
+
+The block you run a rewrite command in has to have text of its own. In an empty block the first
+child would be taken for the block itself and every line after it would land one block up, so
+the plugin refuses instead (`This block has no text of its own to rewrite…`); run it on one of
+the children.
 
 Because one command can now touch several blocks, undo may take more than one Ctrl+Z.
 
@@ -193,8 +209,9 @@ It is **off unless you set a Web Search API Key** in the settings — get one fr
 [tavily.com](https://tavily.com), whose free tier is 1,000 searches a month. Without a key the
 command is not registered at all and nothing else changes; after setting one, reload the plugin.
 
-It costs what you would expect: the model searches two to four times before answering, so a run
-takes 7-12 seconds against roughly one for `/Fact Check`. Use `/Fact Check` for everyday
+It costs what you would expect: with `deepseek-chat` the model searches two to four times before
+answering, so a run takes 7-12 seconds against roughly one for `/Fact Check`; `deepseek-reasoner`
+ran eight searches over four rounds and took 45 seconds on one live run. Use `/Fact Check` for everyday
 sanity-checking and this when the answer has to be attributable — versions, dates, numbers,
 anything recent.
 
@@ -315,6 +332,7 @@ Every failure shows up as a Logseq notification. The common ones:
 | `DeepSeek stopped at its output limit — the answer may be cut off.` | The answer was written but may be truncated. Ask for something shorter |
 | `The block is empty — nothing to send to DeepSeek.` | The block (and its children) had no text after removing properties |
 | `The block was deleted while DeepSeek was answering.` | The answer was discarded. Run the command again on the new block |
+| `This block has no text of its own to rewrite. Run the command on a block with text, or on one of the children.` | `/Polish`, `/Shorten`, `/Expand`, `/Tone:` and custom `replace` prompts only: the block is empty (or holds only the tag) and has children. Rewriting from here would shift every child up by one, so nothing was sent |
 | `DeepSeek returned nothing to insert.` | The reply had no usable line — with `/Fact Check`, every line it wrote was about a statement it found nothing wrong with, and those are dropped. Run it again, or on a smaller block |
 | `This Logseq version cannot set block properties on a DB graph. Update Logseq, or change the prompt’s "output" away from "property".` | DB graphs only: this Logseq build has no `upsertBlockProperty`. Update Logseq, or give the prompt another `output` |
 | `Could not write the "…" property on this DB graph: …` | DB graphs only: the property could not be defined or written; the message says why. Create the property in Logseq first, or give the prompt `output: insert` |
@@ -331,7 +349,7 @@ Still stuck? Open the Logseq developer console (`Ctrl+Shift+I`) — the full err
 ## For developers
 
 ```sh
-pnpm test    # 249 unit tests (vitest)
+pnpm test    # 276 unit tests (vitest)
 pnpm lint    # eslint over src/ and test/
 pnpm build   # tsc + vite → dist/
 ```
@@ -343,6 +361,7 @@ Source layout:
 | `src/main.ts` | Logseq glue: registers commands, reads and writes blocks. Not unit-tested |
 | `src/graph.ts` | File-graph / DB-graph adapters; everything that touches a block goes through it |
 | `src/block.ts` | Block content — property splitting, tags, editor/DB merge |
+| `src/outline.ts` | Subtree rewrites: parsing the model's outline back into a tree and planning which blocks to update, insert, remove or keep |
 | `src/prompt.ts` | Prompt assembly and custom-prompt validation |
 | `src/settings.ts` | The settings schema and its defaults |
 | `src/search.ts` | The web search client (Tavily) |
@@ -352,7 +371,7 @@ Source layout:
 | `src/prompts/` | The built-in prompts, one per file; `index.ts` sets the order |
 
 `@logseq/libs` is the only runtime dependency; every API call is a plain `fetch`. Bundle is
-about 47 kB gzipped.
+about 48 kB gzipped.
 
 ### What changed from the original
 

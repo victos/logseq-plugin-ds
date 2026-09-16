@@ -5,6 +5,8 @@
  * a tree and reconciled against the blocks that already exist.
  */
 
+import { isFenceLine } from './block';
+
 export interface OutlineNode {
   text: string;
   children: OutlineNode[];
@@ -12,8 +14,6 @@ export interface OutlineNode {
 
 const BULLET = /^(\s*)(?:[-*+•]\s+|\d+[.)]\s+)(.*)$/;
 const INDENT = /^\s*/;
-// A fence opener or closer on its own line; "```x```" inline is neither.
-const FENCE = /^\s*(?:```|~~~)(?!.*(?:```|~~~)\s*$)/;
 
 /** Width of one indent level: a tab, or two spaces. */
 function depthOf(indent: string): number {
@@ -56,7 +56,7 @@ export function parseOutline(text: string): OutlineNode | null {
     }
     stack.length = depth;
     stack.push({ node, indent, bulleted });
-    if (FENCE.test(body)) {
+    if (isFenceLine(body)) {
       inFence = true;
       fenceOwner = depth;
     }
@@ -82,7 +82,7 @@ export function parseOutline(text: string): OutlineNode | null {
       ? line.slice(prefix.length)
       : line.startsWith(indent) ? line.slice(indent.length) : line.trimStart();
     node.text += `${'\n'.repeat(blanks + 1)}${stripped.trimEnd()}`;
-    if (FENCE.test(line)) {
+    if (isFenceLine(line)) {
       inFence = !inFence;
       fenceOwner = index;
     }
@@ -135,14 +135,24 @@ export function renderOutline(node: OutlineNode, level = 0): string {
 export interface ExistingBlock {
   uuid: string;
   text: string;
-  /** True when something links to this block, so deleting it would break a reference. */
+  /**
+   * True when removing this block would break a reference: something links to
+   * it, or to a block below it that the model was never shown.
+   */
   linked: boolean;
   children: ExistingBlock[];
 }
 
 export type Step =
   | { op: 'update'; uuid: string; text: string }
-  | { op: 'insert'; parent: string; text: string; children: OutlineNode[] }
+  | {
+      op: 'insert';
+      parent: string;
+      text: string;
+      children: OutlineNode[];
+      /** The block this one follows; absent when the parent had no block the model saw. */
+      after?: string;
+    }
   | { op: 'remove'; uuid: string }
   | { op: 'keep'; uuid: string; reason: 'linked' };
 
@@ -164,8 +174,14 @@ export function planRewrite(root: string, rewritten: OutlineNode, existing: Exis
       steps.push({ op: 'update', uuid: current[i].uuid, text: next[i].text });
       walk(current[i].uuid, next[i].children, current[i].children);
     }
+    // A surplus line goes after the block that took the line before it, so an
+    // added point follows its predecessor even when the parent also holds
+    // children the model was not shown.
+    const after = current[shared - 1]?.uuid;
     for (const extra of next.slice(shared)) {
-      steps.push({ op: 'insert', parent, text: extra.text, children: extra.children });
+      steps.push({
+        op: 'insert', parent, text: extra.text, children: extra.children, ...(after ? { after } : {}),
+      });
     }
     for (const surplus of current.slice(shared)) {
       pruneOrKeep(surplus);

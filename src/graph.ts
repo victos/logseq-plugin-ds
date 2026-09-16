@@ -21,6 +21,7 @@ import {
 } from './outline';
 import {
   BlockLike,
+  appendToText,
   blockContent,
   blockToText,
   composeAppend,
@@ -28,8 +29,10 @@ import {
   composeReplace,
   fileText,
   hasTag,
+  propertyLineKey,
   propertyValue,
   readCurrentContent,
+  splitProperties,
   withTag,
 } from './block';
 
@@ -98,24 +101,25 @@ export class FileGraphOps implements BlockOps {
     return blockToText({ ...block, content: live ?? blockContent(block) }, fileText, tag);
   }
 
-  readText(uuid: string) {
-    return readCurrentContent(this.editor, uuid);
+  async readText(uuid: string) {
+    const content = await readCurrentContent(this.editor, uuid);
+    return content === null ? null : splitProperties(content).body;
   }
 
   async replaceText(uuid: string, text: string, tag: string) {
-    const latest = await this.readText(uuid);
+    const latest = await readCurrentContent(this.editor, uuid);
     if (latest === null) return;
     await this.editor.updateBlock(uuid, composeReplace(latest, text, tag));
   }
 
   async appendText(uuid: string, addition: string, tag: string) {
-    const latest = await this.readText(uuid);
+    const latest = await readCurrentContent(this.editor, uuid);
     if (latest === null) return;
     await this.editor.updateBlock(uuid, composeAppend(latest, addition, tag));
   }
 
   async setProperty(uuid: string, key: string, value: string, tag: string) {
-    const latest = await this.readText(uuid);
+    const latest = await readCurrentContent(this.editor, uuid);
     if (latest === null) return;
     await this.editor.updateBlock(uuid, composeProperty(latest, key, value, tag));
   }
@@ -126,10 +130,7 @@ export class FileGraphOps implements BlockOps {
    * that reference.
    */
   private toExisting(block: BlockLikeWithChildren, tag: string): ExistingBlock[] {
-    return existingChildren(block, fileText, tag, (child) => {
-      const content = blockContent(child);
-      return /(^|\n)\s*id::\s/.test(content);
-    }, (child) => this.toExisting(child, tag));
+    return existingChildren(block, fileText, tag, hasIdProperty).children;
   }
 
   async rewriteSubtree(uuid: string, outline: string, tag: string) {
@@ -192,8 +193,7 @@ export class DbGraphOps implements BlockOps {
   async appendText(uuid: string, addition: string, tag: string) {
     const latest = await this.currentText(uuid);
     if (latest === null) return;
-    const text = latest ? `${latest} ${addition}` : addition;
-    await this.editor.updateBlock(uuid, withTag(text, tag));
+    await this.editor.updateBlock(uuid, withTag(appendToText(latest, addition), tag));
   }
 
   /**
@@ -245,7 +245,7 @@ export class DbGraphOps implements BlockOps {
    * is ever deleted here — a surplus block is kept and reported instead.
    */
   private toExisting(block: BlockLikeWithChildren, tag: string): ExistingBlock[] {
-    return existingChildren(block, dbText, tag, () => true, (child) => this.toExisting(child, tag));
+    return existingChildren(block, dbText, tag, () => true).children;
   }
 
   async rewriteSubtree(uuid: string, outline: string, tag: string) {
@@ -268,34 +268,71 @@ export class DbGraphOps implements BlockOps {
   }
 }
 
+interface ExistingTree {
+  children: ExistingBlock[];
+  /** A block the model was not shown, somewhere below, is linked. */
+  hiddenLinked: boolean;
+}
+
 /**
  * The children as the model saw them, for reconciliation. `blockToText` leaves
  * two kinds of child out of the outline, and they have to be left out here in
  * the same way or every line after them lands one block off: a child tagged as
  * the plugin's own output is skipped with its subtree and never touched, and a
  * child with no text of its own is stood in for by its children.
+ *
+ * What is left out can still be linked, and removing an ancestor would take it
+ * along. So a linked block below a skipped one marks the nearest block that is
+ * in the tree as linked, and the plan keeps that block.
  */
 function existingChildren(
   block: BlockLikeWithChildren,
   textOf: (block: BlockLike) => string,
   tag: string,
   isLinked: (child: Record<string, unknown>) => boolean,
-  recurse: (child: Record<string, unknown>) => ExistingBlock[],
-): ExistingBlock[] {
-  const out: ExistingBlock[] = [];
+): ExistingTree {
+  const children: ExistingBlock[] = [];
+  let hiddenLinked = false;
   for (const child of asBlocks(block.children)) {
     const text = textOf(child);
     if (hasTag(text, tag)) {
+      if (subtreeLinked(child, isLinked)) {
+        hiddenLinked = true;
+      }
       continue;
     }
-    const children = recurse(child);
+    const below = existingChildren(child, textOf, tag, isLinked);
     if (!text) {
-      out.push(...children);
+      children.push(...below.children);
+      if (isLinked(child) || below.hiddenLinked) {
+        hiddenLinked = true;
+      }
       continue;
     }
-    out.push({ uuid: String(child.uuid ?? ''), text, linked: isLinked(child), children });
+    children.push({
+      uuid: String(child.uuid ?? ''),
+      text,
+      linked: isLinked(child) || below.hiddenLinked,
+      children: below.children,
+    });
   }
-  return out;
+  return { children, hiddenLinked };
+}
+
+function subtreeLinked(
+  block: Record<string, unknown>,
+  isLinked: (child: Record<string, unknown>) => boolean,
+): boolean {
+  return isLinked(block) || asBlocks(block.children).some((child) => subtreeLinked(child, isLinked));
+}
+
+/**
+ * `id::` is the signal on a file graph: Logseq writes it into a block only
+ * once something references it. Only a real property line counts — not the
+ * words `id::` inside the prose or a code fence.
+ */
+function hasIdProperty(block: Record<string, unknown>): boolean {
+  return splitProperties(blockContent(block)).properties.some((line) => propertyLineKey(line) === 'id');
 }
 
 /**
@@ -309,14 +346,21 @@ async function applyPlan(
   write: (uuid: string, text: string) => Promise<void>,
 ): Promise<number> {
   let kept = 0;
+  // The last block put under each parent, so the next surplus line follows it.
+  const lastInserted = new Map<string, string>();
   for (const step of steps) {
     switch (step.op) {
       case 'update':
         await write(step.uuid, step.text);
         break;
-      case 'insert':
-        await insertTree(editor, step.parent, step.text, step.children);
+      case 'insert': {
+        const after = lastInserted.get(step.parent) ?? step.after;
+        const uuid = await insertTree(editor, step.parent, after, step.text, step.children);
+        if (uuid) {
+          lastInserted.set(step.parent, uuid);
+        }
         break;
+      }
       case 'remove':
         await editor.removeBlock(step.uuid);
         break;
@@ -328,25 +372,37 @@ async function applyPlan(
   return kept;
 }
 
+/**
+ * Inserts a block and its subtree: as the sibling after `after` when there is
+ * one, otherwise as the last child of `parent`. Returns the new block's uuid,
+ * or nothing when the host did not hand one back (the subtree is dropped then;
+ * there is nowhere to put it).
+ */
 async function insertTree(
   editor: EditorApi,
   parent: string,
+  after: string | undefined,
   text: string,
   children: OutlineNode[],
-): Promise<void> {
-  const inserted = (await editor.insertBlock(parent, text)) as { uuid?: string } | null;
-  if (!inserted?.uuid) {
-    return;
+): Promise<string | undefined> {
+  const inserted = (after
+    ? await editor.insertBlock(after, text, { sibling: true })
+    : await editor.insertBlock(parent, text)) as { uuid?: unknown } | null;
+  const uuid = inserted?.uuid;
+  if (typeof uuid !== 'string' || !uuid) {
+    return undefined;
   }
+  let previous: string | undefined;
   for (const child of children) {
-    await insertTree(editor, inserted.uuid, child.text, child.children);
+    previous = (await insertTree(editor, uuid, previous, child.text, child.children)) ?? previous;
   }
+  return uuid;
 }
 
-/** Prose of one block in a DB graph. */
+/** Prose of one block in a DB graph. Trimmed: a whitespace-only title is no text, like an empty one. */
 export function dbText(block: { title?: unknown; content?: unknown }): string {
-  if (typeof block.title === 'string') return block.title;
-  if (typeof block.content === 'string') return block.content;
+  if (typeof block.title === 'string') return block.title.trim();
+  if (typeof block.content === 'string') return block.content.trim();
   return '';
 }
 

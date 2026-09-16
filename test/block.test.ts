@@ -377,3 +377,56 @@ describe('AI output is not fed back in', () => {
     expect(blockToText(block, fileText, ' #AI')).toBe('Root\n\t- Read up on #AIDS research');
   });
 });
+
+describe('code fences', () => {
+  it('splitProperties does not take an inline ```x``` for an open fence', () => {
+    expect(splitProperties('See ```code``` here\nid:: 64a1')).toEqual({
+      body: 'See ```code``` here',
+      properties: ['id:: 64a1'],
+    });
+  });
+
+  // "``` #tag" is not a closing fence any more; everything after it renders as code.
+  it('withTag puts the tag on its own line after a closing fence', () => {
+    expect(withTag('```js\nx()\n```', TAG)).toBe('```js\nx()\n```\n#[[🤖]]');
+    expect(withTag('```js\nx()\n```\n#[[🤖]]', TAG)).toBe('```js\nx()\n```\n#[[🤖]]');
+    expect(withTag('uses ```inline```', TAG)).toBe('uses ```inline``` #[[🤖]]');
+  });
+
+  it('composeAppend continues below a closing fence, not on its line', () => {
+    expect(composeAppend('Intro\n```\nx\n```', 'More.', TAG)).toBe('Intro\n```\nx\n```\nMore. #[[🤖]]');
+  });
+
+  // Logseq keeps the properties of a block with no title line — one that opens
+  // with a code fence, a table, a quote or a list — in front of it. After the
+  // first line they would sit inside the code.
+  it('joinBlock puts properties in front of a block that has no title line', () => {
+    expect(joinBlock('```js\nx()\n```', ['id:: 64a1'])).toBe('id:: 64a1\n```js\nx()\n```');
+    expect(joinBlock('| a | b |\n| - | - |', ['id:: 64a1'])).toBe('id:: 64a1\n| a | b |\n| - | - |');
+    expect(joinBlock('> quoted', ['id:: 64a1'])).toBe('id:: 64a1\n> quoted');
+    expect(joinBlock('- item\n- item', ['id:: 64a1'])).toBe('id:: 64a1\n- item\n- item');
+    expect(joinBlock('## Heading', ['id:: 64a1'])).toBe('## Heading\nid:: 64a1');
+    expect(joinBlock('-1 is negative', ['id:: 64a1'])).toBe('-1 is negative\nid:: 64a1');
+  });
+
+  it('a replace on a referenced code block keeps id:: readable as a property', () => {
+    const saved = 'id:: 64a1\n```js\nold()\n```';
+    const written = composeReplace(saved, '```js\nnew()\n```', TAG);
+    expect(written).toBe('id:: 64a1\n```js\nnew()\n```\n#[[🤖]]');
+    expect(splitProperties(written).properties).toEqual(['id:: 64a1']);
+  });
+});
+
+describe('text extraction', () => {
+  it('fileText trims, so a whitespace-only block has no text and its children stand in', () => {
+    expect(splitProperties('  \n').body).toBe('');
+    expect(
+      blockToText({ content: 'Root', children: [{ content: ' \n', children: [{ content: 'Deep' }] }] }),
+    ).toBe('Root\n\t- Deep');
+  });
+
+  it('dbText trims a whitespace-only title to nothing', () => {
+    expect(dbText({ title: '  ' })).toBe('');
+    expect(dbText({ title: ' x ' })).toBe('x');
+  });
+});

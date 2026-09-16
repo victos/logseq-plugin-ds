@@ -64,7 +64,8 @@ pnpm install && pnpm build
 prompt 里；自定义命令的行为完全由你写的 prompt 决定。）
 
 AI 写的内容都会带上 `#[[🤖]]` 标签，方便日后检索：被替换或追加的正文、插入的每一个子块，
-以及新增了属性的那个块。标签可以在设置里改，也可以关掉。
+以及新增了属性的那个块。标签放在正文末尾；如果正文以围栏代码块结尾，标签会另起一行 ——
+写成 `` ``` #[[🤖]] `` 的话，这行就不再是围栏的收尾了。标签可以在设置里改，也可以关掉。
 
 ### 怎么给它上下文
 
@@ -105,18 +106,23 @@ Logseq 的两种存储后端对「块」的建模完全不同，插件会自动�
 | 属性 | 块内部的文本行 | 独立的实体 |
 | `/Summarize` 写什么 | 一行 `summarize:: …` | 通过 API 写 `summarize` 属性 |
 
-文件图上，属性行会在发送前被剥离、写回时原样恢复；DB 图上正文和属性本来就是分开的，替换文本
-根本碰不到属性，也就无需重组。
+文件图上，属性行会在发送前被剥离、写回时原样恢复 —— 放回第一行之后；如果块是以围栏代码、表格、
+引用或列表开头的，就放在块的最前面，这也是 Logseq 自己对这类块的写法（放在围栏那一行后面，属性就
+落进代码里了，写在那里的 `id::` 也就不再是属性，块的引用随之失效）。DB 图上正文和属性本来就是
+分开的，替换文本根本碰不到属性，也就无需重组。
 
 **DB 路径已经在真实 DB 图里、在 Logseq 中手工跑通。** `/Ask AI`、`/Tone:`、`/Summarize`、
 `/Shorten` 各自在一个带子块的块上跑过：属性被成功创建并写入，子树被整体改写，而指向某个被改写
 子块的 `((引用))` 在之后依然有效。`marketplace/manifest.json` 据此声明 `supportsDB: true`。
+此后新增的一处逻辑在两种后端上都还没在 Logseq 里跑过：改写时若要在一个已有要点的父块下新增要点，
+现在会插在那个要点之后作为其兄弟块（`insertBlock(…, { sibling: true })`），而不是作为父块的最后一个子块。
 
-另有两个细节是通过 Logseq 自带 CLI 实测确认的，不是从类型定义推断的：
+另有三个细节是通过 Logseq 自带 CLI 实测确认的，不是从类型定义推断的：
 
 - 写进块正文的 `#[[🤖]]` 标签**会留在正文里**：DB 会记录一条指向 `🤖` 页面的引用，但不会把标签
   移到独立的 tag 字段，读回来时标签原样还在。所以上面描述的标签行为 —— 包括跳过带标签的子块 ——
   在两种后端上都成立。
+- 正文以围栏代码结尾、标签另起一行的块，存进去是什么样读出来就是什么样，标签不会被折回围栏那一行。
 - **DB 图不允许给块加一个尚不存在的属性**（报错原文 `Property :summarize doesn't exist yet`），
   而且属性最终存储用的是它自己生成的带命名空间 ident，不是你传进去的名字。所以 `/Summarize`
   会先定义属性再写入；万一仍被拒绝，你会看到明确提示，并建议改用 `output: insert`。
@@ -138,13 +144,19 @@ SDK 是打包进插件的，真正决定行为的是 **Logseq 的版本**。DB �
 指向它的 `((引用))` 和它的属性都不会丢。行数可以变：多出来的行新建成块，少掉的块被删除。
 
 **唯一不会被删的是「被引用过的块」。** 文件图上的判据是 `id::`（Logseq 只在块被引用后才写入它）；
-DB 图上插件无从查询反向引用，所以**那里一个都不删**。两种情况下多余的块都会原地保留，并弹出通知
-告诉你留了几个，由你手动处理。
+DB 图上插件不去查询反向引用，所以**那里一个都不删**。这条规则也覆盖模型没看到的部分：多余的块下面
+如果藏着一个被引用的块 —— 在插件自己带标签的输出里，或者在一个空块之下 —— 这个多余的块同样会保留。
+两种情况下多余的块都会原地保留，并弹出通知告诉你留了几个，由你手动处理。
 
 多行的块 —— 比如两段文字，或者一段围栏代码 —— 仍然是一个块：没有项目符号的行会被当作上一条要点的
-续行。插件唯一分不清的是写在**同一个块里**的 Markdown 列表（各占一行的 `- a`、`- b`），这种会被拆成子块。
+续行。插件唯一分不清的是写在**同一个块里**的 Markdown 列表（各占一行的 `- a`、`- b`）：这种会被拆成子块，
+而且如果这个块本来就有子块，列表项会在对位时顶替子块的位置，原来的子块就被它们覆盖了。
 模型没看到的子块不参与对位：插件自己带标签的输出，以及本身没有正文的块。所以在同一个块上先跑
-`/Ask AI` 再跑 `/Polish`，答案会留在原处，不会被覆盖。
+`/Ask AI` 再跑 `/Polish`，答案会留在原处，不会被覆盖；改写新增的要点会紧跟在模型看到的最后一个要点之后，
+而不是排在那条答案后面。
+
+执行改写命令的块本身必须有正文。在空块里执行的话，第一个子块会被当成块本身，后面每一行都会错位一格，
+所以插件会直接拒绝（`This block has no text of its own to rewrite…`），请到某个子块里执行。
 
 由于一条命令现在可能改动多个块，撤销可能需要按多次 Ctrl+Z。
 
@@ -165,7 +177,8 @@ DB 图上插件无从查询反向引用，所以**那里一个都不删**。两�
 **不配置搜索 key 就不启用。** 到 [tavily.com](https://tavily.com) 申请（免费额度每月 1000 次），
 填进设置里的 Web Search API Key。没有 key 时这条命令**根本不会注册**，其余一切不变；填好后重载插件。
 
-代价也很直接：模型回答前会搜 2~4 次，一次运行约 7~12 秒，而 `/Fact Check` 大约 1 秒。
+代价也很直接：用 `deepseek-chat` 时模型回答前会搜 2~4 次，一次运行约 7~12 秒，而 `/Fact Check`
+大约 1 秒；`deepseek-reasoner` 在一次实测中搜了 8 次、跑了 4 轮，用时 45 秒。
 日常顺手一查用 `/Fact Check`，需要**可追溯来源**时用这条 —— 版本号、日期、数字、近期发生的事。
 
 它最多搜四轮，之后必须凭手头的结果作答。某次搜索一时失败（超时、网络抖动）时，失败会告诉模型，
@@ -275,6 +288,7 @@ Temperature 这一栏只要你改动过，Logseq 就会把它存成文本（`"0.
 | `DeepSeek stopped at its output limit — the answer may be cut off.` | 答案已经写入，但可能被截断了。让它写短一点 |
 | `The block is empty — nothing to send to DeepSeek.` | 这个块（连同子块）去掉属性之后没有正文 |
 | `The block was deleted while DeepSeek was answering.` | 答案已被丢弃。在新的块上再执行一次命令 |
+| `This block has no text of its own to rewrite. Run the command on a block with text, or on one of the children.` | 只在 `/Polish`、`/Shorten`、`/Expand`、`/Tone:` 和 `output` 为 `replace` 的自定义命令出现：这个块是空的（或只有标签）但有子块。从这里改写会让每个子块错位一格，所以什么都没发出去 |
 | `DeepSeek returned nothing to insert.` | 回复里没有可用的行 —— 用 `/Fact Check` 时，它写的每一行都是在说某句话没问题，这类行会被丢掉。再跑一次，或者把块拆小 |
 | `This Logseq version cannot set block properties on a DB graph. Update Logseq, or change the prompt’s "output" away from "property".` | 只在 DB 图上出现：这个版本的 Logseq 没有 `upsertBlockProperty`。升级 Logseq，或者给这条命令换一种 `output` |
 | `Could not write the "…" property on this DB graph: …` | 只在 DB 图上出现：属性没能定义或写入，提示里会说明原因。先在 Logseq 里创建这个属性，或者把这条命令的 `output` 改成 `insert` |
@@ -291,7 +305,7 @@ Temperature 这一栏只要你改动过，Logseq 就会把它存成文本（`"0.
 ## 开发者信息
 
 ```sh
-pnpm test    # 249 个单元测试（vitest）
+pnpm test    # 276 个单元测试（vitest）
 pnpm lint    # 对 src/ 和 test/ 跑 eslint
 pnpm build   # tsc + vite，产物在 dist/
 ```
@@ -303,6 +317,7 @@ pnpm build   # tsc + vite，产物在 dist/
 | `src/main.ts` | Logseq 胶水层：注册命令、读写块。没有单元测试 |
 | `src/graph.ts` | 文件图 / DB 图适配层，所有对块的读写都走这里 |
 | `src/block.ts` | 块内容处理 —— 属性拆分、标签、编辑器与数据库内容合并 |
+| `src/outline.ts` | 子树改写：把模型返回的大纲解析回树，并规划哪些块更新、插入、删除或保留 |
 | `src/prompt.ts` | 拼装 prompt、校验自定义命令 |
 | `src/settings.ts` | 设置项的 schema 和默认值 |
 | `src/search.ts` | 联网搜索客户端（Tavily） |
@@ -311,7 +326,7 @@ pnpm build   # tsc + vite，产物在 dist/
 | `src/parsers.ts` | 把回复解析成列表或结构化字段 |
 | `src/prompts/` | 内置 prompt，一个文件一条；`index.ts` 决定顺序 |
 
-运行时依赖只有 `@logseq/libs`，每次 API 调用都只是一次普通的 `fetch`。产物 gzip 后约 47 kB。
+运行时依赖只有 `@logseq/libs`，每次 API 调用都只是一次普通的 `fetch`。产物 gzip 后约 48 kB。
 
 ### 相比原项目改了什么
 

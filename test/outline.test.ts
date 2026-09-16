@@ -104,8 +104,8 @@ describe('planRewrite', () => {
     expect(steps).toEqual([
       { op: 'update', uuid: 'root', text: 'R' },
       { op: 'update', uuid: 'a', text: 'one' },
-      { op: 'insert', parent: 'root', text: 'two', children: [] },
-      { op: 'insert', parent: 'root', text: 'three', children: [] },
+      { op: 'insert', parent: 'root', text: 'two', children: [], after: 'a' },
+      { op: 'insert', parent: 'root', text: 'three', children: [], after: 'a' },
     ]);
   });
 
@@ -169,7 +169,7 @@ describe('planRewrite', () => {
       { op: 'update', uuid: 'root', text: 'R' },
       { op: 'update', uuid: 'a', text: 'one' },
       { op: 'update', uuid: 'a1', text: 'deep1' },
-      { op: 'insert', parent: 'a', text: 'deep2', children: [] },
+      { op: 'insert', parent: 'a', text: 'deep2', children: [], after: 'a1' },
     ]);
   });
 
@@ -177,5 +177,55 @@ describe('planRewrite', () => {
     expect(planRewrite('root', node('Just this'), [])).toEqual([
       { op: 'update', uuid: 'root', text: 'Just this' },
     ]);
+  });
+});
+
+describe('parseOutline on shapes a note can take', () => {
+  it('attaches a later grandchild to its own parent, not to an earlier one', () => {
+    expect(parseOutline('Root\n\t- A\n\t\t- B\n\t- C\n\t\t- D')).toEqual(
+      node('Root', node('A', node('B')), node('C', node('D'))),
+    );
+  });
+
+  it('drops an empty bullet instead of opening an empty point', () => {
+    expect(parseOutline('Root\n\t- \n\t- One\n\t-   ')).toEqual(node('Root', node('One')));
+  });
+
+  it('trims trailing whitespace from points and continuation lines', () => {
+    expect(parseOutline('Root  \n\t- One \n\t  more  ')).toEqual(node('Root', node('One\nmore')));
+  });
+
+  // A child block that is nothing but a code block: the bullet line itself
+  // opens the fence, and the closing fence must not be read as an opener.
+  it('keeps a point that opens with a code fence together, and the next point apart', () => {
+    expect(parseOutline('Root\n\t- ```js\n\t  x()\n\t  ```\n\t- Two')).toEqual(
+      node('Root', node('```js\nx()\n```'), node('Two')),
+    );
+    expect(parseOutline('```js\nx()\n```\n\t- One')).toEqual(node('```js\nx()\n```', node('One')));
+  });
+
+  it('keeps the indentation of code inside a bulleted point', () => {
+    expect(parseOutline('Root\n\t- Code:\n\t  ```\n\t\tindented\n\t  ```\n\t- Two')).toEqual(
+      node('Root', node('Code:\n```\n\tindented\n```'), node('Two')),
+    );
+  });
+
+  it('gives a continuation aligned with no point to the point at its indent depth', () => {
+    expect(parseOutline('Root\n\t- A\n\t\t- B\n\t\tmore of B')).toEqual(
+      node('Root', node('A', node('B\nmore of B'))),
+    );
+  });
+});
+
+describe('planRewrite places what it inserts', () => {
+  it('anchors a surplus line after the last block that took one', () => {
+    const steps = planRewrite('root', node('R', node('one'), node('two')), [block('a', 'x')]);
+    expect(steps).toContainEqual({ op: 'insert', parent: 'root', text: 'two', children: [], after: 'a' });
+  });
+
+  it('leaves the anchor out when the parent had no block the model saw', () => {
+    const steps = planRewrite('root', node('R', node('one')), []);
+    expect(steps[1]).toEqual({ op: 'insert', parent: 'root', text: 'one', children: [] });
+    expect(steps[1]).not.toHaveProperty('after');
   });
 });

@@ -43,6 +43,19 @@ async function runPrompt(definition: IPrompt, uuid: string) {
     await logseq.UI.showMsg('The block is empty — nothing to send to DeepSeek.', 'warning');
     return;
   }
+  if (definition.output === PromptOutputType.replace) {
+    // The outline's first line is the block itself. With no text of its own,
+    // the first child would take that place and every line after it would be
+    // written back one block off — so the rewrite is refused instead.
+    const own = await ops.readText(uuid);
+    if (!stripTag(own ?? '', tag).trim()) {
+      await logseq.UI.showMsg(
+        'This block has no text of its own to rewrite. Run the command on a block with text, or on one of the children.',
+        'warning',
+      );
+      return;
+    }
+  }
 
   const parser = getOutputParser(definition.format);
   const messages: ChatMessage[] = [

@@ -155,6 +155,10 @@ describe('list parser drops non-findings', () => {
     expect(list().parse(lines.join('\n'))).toEqual(lines);
   });
 
+  it('drops the claim repeated with a bracketed remark that is not itself an affirmation', () => {
+    expect(parse('❌ RAM is volatile → ✅ RAM is volatile (no correction needed)')).toEqual([]);
+  });
+
   it('leaves lines that are not verdicts alone', () => {
     expect(parse('未发现事实错误。')).toEqual(['未发现事实错误。']);
     expect(parse('an ordinary brainstormed idea')).toEqual(['an ordinary brainstormed idea']);
