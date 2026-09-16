@@ -120,6 +120,15 @@ describe('verifyWithSearch', () => {
     expect(final.messages.at(-1)).toEqual({ role: 'user', content: ANSWER_NOW });
   });
 
+  // ANSWER_NOW goes to every searching command. A version that said "mark such
+  // a claim with ❓" put ❓ into /Ask Online's prose on 3 forced answers out of 4;
+  // /Verify Online's own prompt defines the mark and kept using it without help.
+  it('the forced-answer line names no command\'s format', () => {
+    expect(ANSWER_NOW).not.toMatch(/❓|✅|❌|fact check|claim/i);
+    expect(ANSWER_NOW).toMatch(/Do not call any tool/);
+    expect(ANSWER_NOW).toMatch(/format requested/);
+  });
+
   // Seen live: refused a call, deepseek-reasoner wrote the call out as text.
   it('rejects an answer that is really leaked tool-call markup', async () => {
     const { chat } = scriptedChat([

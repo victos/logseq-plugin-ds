@@ -36,11 +36,17 @@ export const MAX_SEARCH_HOPS = 4;
  * alone is not enough: deepseek-reasoner, refused a call it wanted to make,
  * writes the call out as text instead of answering. Told in the conversation,
  * it answers.
+ *
+ * The line is shared by every searching command, so it must not name any one
+ * command's format. An earlier wording mentioned ❓ "in a fact check", and
+ * /Ask Online copied the mark into its prose on 3 forced answers out of 4;
+ * with no mark named, 0 out of 6, while /Verify Online — whose own prompt
+ * defines ❓ — still used it for the claim no source settled, 6 out of 6.
  */
 export const ANSWER_NOW =
   'Search is no longer available in this conversation. Do not call any tool. Answer now, ' +
-  'in the format requested, from the results you already have; say plainly what you could not ' +
-  'settle (in a fact check, mark such a claim with ❓).';
+  'in the format requested, from the results you already have, and say plainly what they ' +
+  'leave unsettled.';
 
 /**
  * The model's own tool-call syntax leaking into the text. Seen from

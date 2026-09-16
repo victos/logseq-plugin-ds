@@ -1004,6 +1004,28 @@ async function run(c: Case): Promise<void> {
             throw new Failure('reply-written', `what the model said is not what is in the graph.\n-- reply --\n${want}\n-- graph --\n${now}\n-- log --\n${g.log.join('\n')}`);
           }
         }
+        // The `reply-written` check reads the graph through the same parseOutline
+        // that wrote it, so a parser that misreads the reply passes it. The
+        // sourced-list shape is pinned independently: with no limitation in play,
+        // the bulleted URLs are child blocks of the root and the root keeps only
+        // the prose — the shape the readme documents for `search` with `replace`.
+        if (cmd.reply === 'sourced-list' && result.kept === 0 && identityClass.length > 0 && !echoesProperty && !codeRootWrapped) {
+          const urls = ['https://a.example/one', 'https://b.example/std::vector?q=1#frag'];
+          const rootNow = norm(g.text(after.get(root)!), c.tag);
+          if (/https?:\/\//.test(rootNow)) {
+            throw new Failure('sourced-list-shape', `a URL stayed in the root's text: ${JSON.stringify(rootNow)}; log: ${g.log.join('; ')}`);
+          }
+          // A blank child is not a point and its children stand in for it, so
+          // the URLs may land one level further down; never in the root.
+          const below = (id: string): string[] =>
+            after.get(id)!.children.flatMap((ch) => [norm(g.text(after.get(ch)!), c.tag), ...below(ch)]);
+          const descendants = below(root);
+          for (const url of urls) {
+            if (!descendants.includes(url)) {
+              throw new Failure('sourced-list-shape', `${url} is not a block under the root; found: ${JSON.stringify(descendants)}; log: ${g.log.join('; ')}`);
+            }
+          }
+        }
         // A root whose text was only the tag plus a code block turns into a code block once
         // rewritten, and a fenced reply is then taken literally; documented, not checked.
         const nowCode = isFenceLine(((await ops.readText(root)) ?? '').split('\n')[0]);

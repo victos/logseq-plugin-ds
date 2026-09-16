@@ -26,7 +26,7 @@ Give every false claim its own line: if one sentence contains two false claims, 
 Do not report the same false claim twice.
 Quote only the words that are false, not the whole passage around them.
 
-If the text contains no factual errors, reply with one single line saying that no
+If the text contains no factual errors, reply with one single line, in the language of the text, saying that no
 factual errors were found — nothing else.`,
   output: PromptOutputType.insert,
   format: [],

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildUserMessage, resolvePrompts, validateCustomPrompt } from '../src/prompt';
 import { presetPrompts } from '../src/prompts';
+import { SAME_LANGUAGE } from '../src/prompts/shared';
 import { IPrompt, PromptOutputType } from '../src/prompts/type';
 
 const PRESETS = presetPrompts;
@@ -176,16 +177,23 @@ describe('built-in prompts', () => {
 
   it('all reply in the language of the source text', () => {
     for (const prompt of PRESETS) {
-      if (prompt.name === 'Ask Online') {
-        // Seen live: with SAME_LANGUAGE in its system prompt this command answered
-        // English questions in Chinese on every run, and held the language once the
-        // sentence was moved into its own prompt. It must not quietly get it back.
-        expect(prompt.system).not.toMatch(/same language as the text you are given/i);
-        expect(prompt.prompt).toMatch(/in the same language as the text above/i);
-        continue;
-      }
-      expect(prompt.system).toMatch(/same language as the text you are given/i);
+      expect(prompt.system).toContain(SAME_LANGUAGE);
     }
+  });
+
+  // Measured live on deepseek-chat. The earlier wording presumed the text was
+  // not English ("these instructions are in English, but the text is not
+  // necessarily … If the text is Chinese, reply in Chinese"), and the model
+  // resolved that to Chinese: /Summarize on an English block 5/5 Chinese,
+  // /Explain on a German block 5/5, /Ask Online on an English question 6/6.
+  // Naming English as the first example swung /Tone: Professional on a Chinese
+  // block to English 8/8. Neither presumption may come back.
+  it('the language rule presumes nothing about which language the text is in', () => {
+    expect(SAME_LANGUAGE).not.toMatch(/not necessarily/i);
+    expect(SAME_LANGUAGE).not.toMatch(/if the text is chinese/i);
+    expect(SAME_LANGUAGE).not.toMatch(/english text gets an english/i);
+    expect(SAME_LANGUAGE).toMatch(/language the text is written in/i);
+    expect(SAME_LANGUAGE).toMatch(/English included/);
   });
 
   // Rewrite commands must not let the model embellish: they replace the user's
@@ -284,9 +292,6 @@ describe('built-in prompts', () => {
     expect(ask!.prompt).toMatch(/Do not answer from memory/i);
     expect(ask!.prompt).toMatch(/list the sources you used/i);
     expect(ask!.prompt).toMatch(/if the sources disagree/i);
-    // Seen live, 4 runs out of 4: English questions answered in Chinese with the
-    // language rule only in the system prompt.
-    expect(ask!.prompt).toMatch(/in the same language as the text above/i);
   });
 
   // The registration list is written by hand, so a new prompt file that nobody

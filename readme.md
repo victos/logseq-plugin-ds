@@ -66,7 +66,8 @@ writing; the Tone commands change the register. Both are explicitly told not to 
 invent information. `/Shorten` and `/Expand` are not — changing the amount of detail is the
 point of those two.
 
-Answers come back in the language you wrote in — ask in Chinese, get Chinese. (This rule is
+Answers come back in the language you wrote in — ask in Chinese, get Chinese; write in English
+or German and the answer stays in it, whether the command searches the web or not. (This rule is
 built into the preset prompts only; custom prompts say whatever you tell them to.)
 
 Everything the AI writes is tagged `#[[🤖]]` so you can find it later: replaced or appended
