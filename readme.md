@@ -297,9 +297,16 @@ until you change it.
 - **`deepseek-chat`** — fast and cheap. Right for almost everything: summarizing, rewriting,
   changing tone.
 - **`deepseek-reasoner`** — thinks step by step before answering. Better for analysis and hard
-  questions, but noticeably slower and more expensive. Its thinking never reaches your block;
-  during a `/Verify Online` run it is handed back to the model between searches, as the API
-  requires, and dropped once the answer is in. The Temperature setting is not sent to it.
+  questions, and noticeably slower. It is not a pricier model: both names route to the same one
+  and are billed at the same rate, but its thinking counts as output, so a run costs more than
+  the same question asked of `deepseek-chat`. Its thinking never reaches your block; during a
+  `/Verify Online` run it is handed back to the model between searches, as the API requires, and
+  dropped once the answer is in. The Temperature setting is not sent to it.
+
+  It was measured against the live suite on the cells most likely to catch a thinking model out
+  — the one-line `summarize::` property, code blocks that must survive a rewrite, a true claim
+  that invites nitpicking, and language on Chinese and German input — 24 cells × 2 samples,
+  156/156 property checks. Its searching path is verified only on a handful of runs.
 
 DeepSeek's API currently names its models `deepseek-flash` and `deepseek-v4-pro` in its own
 messages; `deepseek-chat` and `deepseek-reasoner` are still accepted and map onto them. Either
