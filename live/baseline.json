@@ -5730,7 +5730,7 @@
       "model": "deepseek-chat",
       "props": {
         "language": [
-          3,
+          0,
           3
         ],
         "clean": [
@@ -5774,8 +5774,8 @@
       "model": "deepseek-chat",
       "props": {
         "language": [
-          0,
-          2
+          2,
+          3
         ],
         "clean": [
           3,
@@ -5786,7 +5786,7 @@
           0
         ],
         "nothing-to-verify": [
-          2,
+          3,
           3
         ]
       }

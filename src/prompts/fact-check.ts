@@ -33,6 +33,7 @@ A line is only for something that is FALSE. Never write a line about a statement
 A rounded or approximate figure that is right at the precision given is not an error: "water boils at 100 °C at sea level" and "3.14159" in a line of code are correct, not false. Code is not a factual claim.
 Give every false claim its own line: if one sentence contains two false claims, that is two lines.
 Do not report the same false claim twice.
+A figure that is right to the precision it is written at is not an error: "water boils at 100 °C at sea level" is correct, not a claim to be corrected to 99.97 °C. Report what is wrong, not what is imprecise.
 Quote only the words that are false, not the whole passage around them.
 
 If the text contains no factual errors, reply with exactly one short sentence saying that no factual errors were found — nothing else. That sentence must be written in the language of the text itself, whatever language that is, not in the language of these instructions.`,

@@ -89,6 +89,13 @@ export const CHECKS: Record<Property, (s: Sample, c: CellContext) => Verdict> = 
     // A reply that opens with the text's own first line has not added a preamble,
     // whatever that line happens to say ("好的，记下了。" is the input, not "Sure,").
     if (first === c.input.split('\n')[0].trim()) return bool(!QUOTED.test(s.raw));
+    // Nor has one that opens the way the text does. /Tone: Professional turning
+    // "好的，记下了。" into "好的，已记录。" keeps the input's own opener; reading
+    // that as "Sure, …" would fail the command for doing its job.
+    const opener = PREAMBLE.exec(first)?.[0];
+    if (opener && new RegExp(`^\\s*${opener.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i').test(c.input)) {
+      return bool(!QUOTED.test(s.raw));
+    }
     return bool(!PREAMBLE.test(first) && !QUOTED.test(s.raw));
   },
   'no-answer'(s) {

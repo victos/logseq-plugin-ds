@@ -52,4 +52,5 @@ The text may be an outline: the first line is the main point and lines indented 
 Reply with the rewritten outline in exactly that form — first line unindented, sub-points indented with tabs and led by "- ", nesting preserved.
 Keep one line per point unless the task itself calls for merging or splitting them.
 Rewrite it in the language it is already written in; changing the tone or the length never means changing the language.
+Leave any fenced code block exactly as it is, fences and all — rewrite the prose around it, never the code, and never replace code with a description of it.
 Reply with the rewritten text and nothing else: no preamble, no explanation, no surrounding quotation marks.`;
