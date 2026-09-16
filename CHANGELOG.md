@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/victos/logseq-plugin-ds/compare/v1.1.0...v1.1.1) (2026-09-16)
+
+
+### Bug Fixes
+
+* the fuzzer was partly blind, and main.ts was untestable ([d320f33](https://github.com/victos/logseq-plugin-ds/commit/d320f33fd534b7b78d3bb77804d0d95245dba641))
+
 # [1.1.0](https://github.com/victos/logseq-plugin-ds/compare/v1.0.0...v1.1.0) (2026-09-16)
 
 
