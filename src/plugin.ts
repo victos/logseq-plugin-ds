@@ -73,6 +73,22 @@ export function chatOptionsFor(settings: ISettings, definition: IPrompt): ChatOp
   };
 }
 
+/**
+ * The conversation a command opens: its system prompt, then its user prompt
+ * with the block text and the format instructions filled in. Exported so the
+ * live prompt suite (`live/`) sends exactly what the plugin sends.
+ */
+export function buildMessages(definition: IPrompt, content: string): ChatMessage[] {
+  const parser = getOutputParser(definition.format);
+  return [
+    { role: 'system', content: definition.system || DEFAULT_SYSTEM },
+    {
+      role: 'user',
+      content: buildUserMessage(definition.prompt, content, parser?.formatInstructions),
+    },
+  ];
+}
+
 /** The response as the pieces the output mode works with: one per list item or `key: value` pair. */
 export function responseItems(parser: OutputParser | undefined, response: string): string[] {
   if (!parser) {
@@ -113,13 +129,7 @@ export async function runPrompt(definition: IPrompt, uuid: string, host: PluginH
   }
 
   const parser = getOutputParser(definition.format);
-  const messages: ChatMessage[] = [
-    { role: 'system', content: definition.system || DEFAULT_SYSTEM },
-    {
-      role: 'user',
-      content: buildUserMessage(definition.prompt, content, parser?.formatInstructions),
-    },
-  ];
+  const messages = buildMessages(definition, content);
   const chatOptions = chatOptionsFor(settings, definition);
 
   // One line per run, so "the wrong thing happened" can be traced to the command

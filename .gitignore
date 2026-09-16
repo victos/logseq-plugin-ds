@@ -7,3 +7,7 @@ dist-ssr
 # Extracted Logseq app bundles (investigation scratch, never part of the plugin)
 main.js
 lsplugin.core.js
+
+# The live prompt suite's last run; only live/baseline.json is tracked
+live/last-run.json
+live/last-run.txt

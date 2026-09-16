@@ -196,6 +196,18 @@ describe('built-in prompts', () => {
     expect(SAME_LANGUAGE).toMatch(/English included/);
   });
 
+  // Live suite: /Explain on a Chinese or German question came back as an English
+  // lesson about the text's language (0/2); /Tone: Professional rewrote a Chinese
+  // question into English (0/2). Both hold 4/4 with these sentences in place.
+  it('Explain and the rewrites repeat the language rule next to the text', () => {
+    const explain = PRESETS.find((p) => p.name === 'Explain');
+    expect(explain!.prompt).toMatch(/Do not describe which language the text is written in/);
+    expect(explain!.prompt).toMatch(/write the explanation in that same language/);
+    for (const prompt of PRESETS.filter((p) => p.output === PromptOutputType.replace)) {
+      expect(prompt.prompt).toMatch(/Rewrite it in the language it is already written in/);
+    }
+  });
+
   // Rewrite commands must not let the model embellish: they replace the user's
   // own text, so invented detail would be silently written into their notes.
   it('in-place rewrites tell the model not to add or remove information', () => {
@@ -222,6 +234,11 @@ describe('built-in prompts', () => {
     expect(factCheck!.output).toBe(PromptOutputType.insert);
     expect(factCheck!.format).toEqual([]);
     expect(factCheck!.prompt).toMatch(/no factual errors/i);
+    // Live suite: `3.14159` in a code block and "boils at 100 °C" were reported
+    // as false (0/3 and 2/3 wrong); the "no errors" line was English on German 0/3.
+    expect(factCheck!.prompt).toMatch(/rounded or approximate figure .* is not an error/);
+    expect(factCheck!.prompt).toMatch(/Code is not a factual claim/);
+    expect(factCheck!.prompt).toMatch(/written in the language of the text itself, .* not in the language of these instructions/);
   });
 
   // Reported in use: every command answered the question in the block instead of
@@ -275,8 +292,24 @@ describe('built-in prompts', () => {
     expect(verify!.prompt).toMatch(/nothing to verify/i);
     expect(verify!.prompt).toMatch(/never invent a claim/i);
     expect(verify!.prompt).toMatch(/A question, a request, a heading.* is not a claim/i);
-    // Seen live: a block of pure opinion came back as a ❓ line plus a "Note:" line.
-    expect(verify!.prompt).toMatch(/an opinion or a prediction is not a claim/i);
+    // Seen live: a block of pure opinion came back as a ❓ line plus a "Note:" line,
+    // and later as one ❓ line per opinion (live suite, 4 runs out of 4 on Chinese).
+    expect(verify!.prompt).toMatch(/an opinion, a preference or a prediction is not a claim/i);
+    expect(verify!.prompt).toMatch(/not even a ❓ line/);
+    // The "nothing to verify" line and the ❓ line came back in English on Chinese
+    // and German text; both now say which language to use.
+    expect(verify!.prompt).toMatch(/exactly one short sentence, written in the language of the text, saying there is nothing to verify/);
+    // Seen live: a code block came back as ✅ lines verifying the value of pi.
+    expect(verify!.prompt).toMatch(/a piece of code, an opinion/);
+    expect(verify!.prompt).toMatch(/❓ <the claim> — no reliable source found/);
+    // The live suite caught the model copying an instruction out of a
+    // placeholder ("— No reliable source was found, in the language of the
+    // text."). A placeholder in the format list must name a thing, not carry
+    // a direction; the language rule belongs in the prose above it.
+    for (const placeholder of verify!.prompt.match(/<[^>]+>/g) ?? []) {
+      expect(placeholder).not.toMatch(/language of the text/i);
+    }
+    expect(verify!.prompt).toMatch(/written in the language of the text, saying there is nothing/);
     // The ✅/❌ split has to be stated, not just shown in the format list.
     expect(verify!.prompt).toMatch(/Use ✅ whenever the sources agree/i);
     expect(verify!.prompt).toMatch(/Use ❌ only when the sources contradict/i);
@@ -292,6 +325,9 @@ describe('built-in prompts', () => {
     expect(ask!.prompt).toMatch(/Do not answer from memory/i);
     expect(ask!.prompt).toMatch(/list the sources you used/i);
     expect(ask!.prompt).toMatch(/if the sources disagree/i);
+    // Live suite: a block with no question got an English "I can't tell what
+    // question you want answered" whatever its language.
+    expect(ask!.prompt).toMatch(/If the text contains no question at all, say so in one sentence — written in the language of the text/);
   });
 
   // The registration list is written by hand, so a new prompt file that nobody

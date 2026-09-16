@@ -1,0 +1,5873 @@
+{
+  "recorded": "2026-09-16",
+  "cells": {
+    "Ask AI|code|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Ask AI|code|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Ask AI|code|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          2,
+          3
+        ]
+      }
+    },
+    "Ask AI|empty-ish|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Ask AI|empty-ish|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Ask AI|empty-ish|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Ask AI|false-claim|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Ask AI|false-claim|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Ask AI|false-claim|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Ask AI|opinion|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Ask AI|opinion|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Ask AI|opinion|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Ask AI|outline|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Ask AI|outline|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Ask AI|outline|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Ask AI|question|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "answers": [
+          3,
+          3
+        ]
+      }
+    },
+    "Ask AI|question|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "answers": [
+          3,
+          3
+        ]
+      }
+    },
+    "Ask AI|question|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "answers": [
+          3,
+          3
+        ]
+      }
+    },
+    "Ask AI|true-claim|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Ask AI|true-claim|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Ask AI|true-claim|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Ask Online (forced)|question|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-marks": [
+          3,
+          3
+        ],
+        "sourced": [
+          3,
+          3
+        ],
+        "real-urls": [
+          3,
+          3
+        ],
+        "answers": [
+          3,
+          3
+        ],
+        "no-echo": [
+          3,
+          3
+        ]
+      }
+    },
+    "Ask Online (forced)|question|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-marks": [
+          3,
+          3
+        ],
+        "sourced": [
+          3,
+          3
+        ],
+        "real-urls": [
+          3,
+          3
+        ],
+        "answers": [
+          3,
+          3
+        ],
+        "no-echo": [
+          3,
+          3
+        ]
+      }
+    },
+    "Ask Online (forced)|question|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-marks": [
+          3,
+          3
+        ],
+        "sourced": [
+          3,
+          3
+        ],
+        "real-urls": [
+          3,
+          3
+        ],
+        "answers": [
+          3,
+          3
+        ],
+        "no-echo": [
+          3,
+          3
+        ]
+      }
+    },
+    "Ask Online|code|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-marks": [
+          3,
+          3
+        ],
+        "sourced": [
+          3,
+          3
+        ],
+        "real-urls": [
+          3,
+          3
+        ]
+      }
+    },
+    "Ask Online|code|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-marks": [
+          3,
+          3
+        ],
+        "sourced": [
+          3,
+          3
+        ],
+        "real-urls": [
+          3,
+          3
+        ]
+      }
+    },
+    "Ask Online|code|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-marks": [
+          3,
+          3
+        ],
+        "sourced": [
+          3,
+          3
+        ],
+        "real-urls": [
+          3,
+          3
+        ]
+      }
+    },
+    "Ask Online|empty-ish|de": {
+      "n": 2,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          2,
+          2
+        ],
+        "clean": [
+          2,
+          2
+        ],
+        "no-marks": [
+          2,
+          2
+        ],
+        "real-urls": [
+          0,
+          0
+        ]
+      }
+    },
+    "Ask Online|empty-ish|en": {
+      "n": 2,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          2,
+          2
+        ],
+        "clean": [
+          2,
+          2
+        ],
+        "no-marks": [
+          2,
+          2
+        ],
+        "real-urls": [
+          0,
+          0
+        ]
+      }
+    },
+    "Ask Online|empty-ish|zh": {
+      "n": 2,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          2,
+          2
+        ],
+        "clean": [
+          2,
+          2
+        ],
+        "no-marks": [
+          2,
+          2
+        ],
+        "real-urls": [
+          0,
+          0
+        ]
+      }
+    },
+    "Ask Online|false-claim|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-marks": [
+          3,
+          3
+        ],
+        "sourced": [
+          2,
+          3
+        ],
+        "real-urls": [
+          2,
+          2
+        ]
+      }
+    },
+    "Ask Online|false-claim|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-marks": [
+          3,
+          3
+        ],
+        "sourced": [
+          3,
+          3
+        ],
+        "real-urls": [
+          3,
+          3
+        ]
+      }
+    },
+    "Ask Online|false-claim|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-marks": [
+          3,
+          3
+        ],
+        "sourced": [
+          3,
+          3
+        ],
+        "real-urls": [
+          3,
+          3
+        ]
+      }
+    },
+    "Ask Online|opinion|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-marks": [
+          3,
+          3
+        ],
+        "sourced": [
+          3,
+          3
+        ],
+        "real-urls": [
+          3,
+          3
+        ]
+      }
+    },
+    "Ask Online|opinion|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-marks": [
+          3,
+          3
+        ],
+        "sourced": [
+          3,
+          3
+        ],
+        "real-urls": [
+          3,
+          3
+        ]
+      }
+    },
+    "Ask Online|opinion|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-marks": [
+          3,
+          3
+        ],
+        "sourced": [
+          3,
+          3
+        ],
+        "real-urls": [
+          3,
+          3
+        ]
+      }
+    },
+    "Ask Online|outline|de": {
+      "n": 2,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          2,
+          2
+        ],
+        "clean": [
+          2,
+          2
+        ],
+        "no-marks": [
+          2,
+          2
+        ],
+        "real-urls": [
+          0,
+          0
+        ]
+      }
+    },
+    "Ask Online|outline|en": {
+      "n": 2,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          2,
+          2
+        ],
+        "clean": [
+          2,
+          2
+        ],
+        "no-marks": [
+          2,
+          2
+        ],
+        "real-urls": [
+          0,
+          0
+        ]
+      }
+    },
+    "Ask Online|outline|zh": {
+      "n": 2,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          2,
+          2
+        ],
+        "clean": [
+          2,
+          2
+        ],
+        "no-marks": [
+          2,
+          2
+        ],
+        "real-urls": [
+          0,
+          0
+        ]
+      }
+    },
+    "Ask Online|question|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-marks": [
+          3,
+          3
+        ],
+        "sourced": [
+          3,
+          3
+        ],
+        "real-urls": [
+          3,
+          3
+        ],
+        "answers": [
+          3,
+          3
+        ],
+        "no-echo": [
+          3,
+          3
+        ]
+      }
+    },
+    "Ask Online|question|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-marks": [
+          3,
+          3
+        ],
+        "sourced": [
+          3,
+          3
+        ],
+        "real-urls": [
+          3,
+          3
+        ],
+        "answers": [
+          3,
+          3
+        ],
+        "no-echo": [
+          3,
+          3
+        ]
+      }
+    },
+    "Ask Online|question|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-marks": [
+          3,
+          3
+        ],
+        "sourced": [
+          3,
+          3
+        ],
+        "real-urls": [
+          3,
+          3
+        ],
+        "answers": [
+          3,
+          3
+        ],
+        "no-echo": [
+          3,
+          3
+        ]
+      }
+    },
+    "Ask Online|true-claim|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-marks": [
+          3,
+          3
+        ],
+        "sourced": [
+          3,
+          3
+        ],
+        "real-urls": [
+          3,
+          3
+        ]
+      }
+    },
+    "Ask Online|true-claim|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-marks": [
+          3,
+          3
+        ],
+        "sourced": [
+          3,
+          3
+        ],
+        "real-urls": [
+          3,
+          3
+        ]
+      }
+    },
+    "Ask Online|true-claim|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-marks": [
+          3,
+          3
+        ],
+        "sourced": [
+          3,
+          3
+        ],
+        "real-urls": [
+          3,
+          3
+        ]
+      }
+    },
+    "Brainstorm|code|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "list": [
+          3,
+          3
+        ]
+      }
+    },
+    "Brainstorm|code|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "list": [
+          3,
+          3
+        ]
+      }
+    },
+    "Brainstorm|code|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "list": [
+          3,
+          3
+        ]
+      }
+    },
+    "Brainstorm|empty-ish|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "list": [
+          3,
+          3
+        ]
+      }
+    },
+    "Brainstorm|empty-ish|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "list": [
+          3,
+          3
+        ]
+      }
+    },
+    "Brainstorm|empty-ish|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          2,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "list": [
+          3,
+          3
+        ]
+      }
+    },
+    "Brainstorm|false-claim|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "list": [
+          3,
+          3
+        ]
+      }
+    },
+    "Brainstorm|false-claim|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "list": [
+          3,
+          3
+        ]
+      }
+    },
+    "Brainstorm|false-claim|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "list": [
+          3,
+          3
+        ]
+      }
+    },
+    "Brainstorm|opinion|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "list": [
+          3,
+          3
+        ]
+      }
+    },
+    "Brainstorm|opinion|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "list": [
+          3,
+          3
+        ]
+      }
+    },
+    "Brainstorm|opinion|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "list": [
+          3,
+          3
+        ]
+      }
+    },
+    "Brainstorm|outline|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "list": [
+          3,
+          3
+        ]
+      }
+    },
+    "Brainstorm|outline|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "list": [
+          3,
+          3
+        ]
+      }
+    },
+    "Brainstorm|outline|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "list": [
+          3,
+          3
+        ]
+      }
+    },
+    "Brainstorm|question|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "list": [
+          3,
+          3
+        ]
+      }
+    },
+    "Brainstorm|question|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "list": [
+          3,
+          3
+        ]
+      }
+    },
+    "Brainstorm|question|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "list": [
+          3,
+          3
+        ]
+      }
+    },
+    "Brainstorm|true-claim|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "list": [
+          3,
+          3
+        ]
+      }
+    },
+    "Brainstorm|true-claim|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "list": [
+          3,
+          3
+        ]
+      }
+    },
+    "Brainstorm|true-claim|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "list": [
+          3,
+          3
+        ]
+      }
+    },
+    "Expand|code|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "keeps-code": [
+          1,
+          3
+        ]
+      }
+    },
+    "Expand|code|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "keeps-code": [
+          3,
+          3
+        ]
+      }
+    },
+    "Expand|code|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "keeps-code": [
+          2,
+          3
+        ]
+      }
+    },
+    "Expand|empty-ish|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Expand|empty-ish|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Expand|empty-ish|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          0,
+          3
+        ]
+      }
+    },
+    "Expand|false-claim|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Expand|false-claim|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Expand|false-claim|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Expand|opinion|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Expand|opinion|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Expand|opinion|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Expand|outline|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "outline-shape": [
+          3,
+          3
+        ]
+      }
+    },
+    "Expand|outline|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "outline-shape": [
+          3,
+          3
+        ]
+      }
+    },
+    "Expand|outline|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "outline-shape": [
+          3,
+          3
+        ]
+      }
+    },
+    "Expand|question|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Expand|question|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Expand|question|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Expand|true-claim|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Expand|true-claim|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Expand|true-claim|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Explain|code|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Explain|code|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Explain|code|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Explain|empty-ish|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Explain|empty-ish|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Explain|empty-ish|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Explain|false-claim|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Explain|false-claim|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Explain|false-claim|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Explain|opinion|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Explain|opinion|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Explain|opinion|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Explain|outline|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Explain|outline|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Explain|outline|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Explain|question|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Explain|question|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Explain|question|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Explain|true-claim|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          2,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Explain|true-claim|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Explain|true-claim|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ]
+      }
+    },
+    "Fact Check|code|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-false-positive": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ]
+      }
+    },
+    "Fact Check|code|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-false-positive": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ]
+      }
+    },
+    "Fact Check|code|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-false-positive": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ]
+      }
+    },
+    "Fact Check|empty-ish|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-false-positive": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ]
+      }
+    },
+    "Fact Check|empty-ish|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-false-positive": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ]
+      }
+    },
+    "Fact Check|empty-ish|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-false-positive": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ]
+      }
+    },
+    "Fact Check|false-claim|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-false-positive": [
+          3,
+          3
+        ],
+        "flags-false": [
+          3,
+          3
+        ],
+        "format": [
+          3,
+          3
+        ]
+      }
+    },
+    "Fact Check|false-claim|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-false-positive": [
+          3,
+          3
+        ],
+        "flags-false": [
+          3,
+          3
+        ],
+        "format": [
+          3,
+          3
+        ]
+      }
+    },
+    "Fact Check|false-claim|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-false-positive": [
+          3,
+          3
+        ],
+        "flags-false": [
+          3,
+          3
+        ],
+        "format": [
+          3,
+          3
+        ]
+      }
+    },
+    "Fact Check|opinion|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-false-positive": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ]
+      }
+    },
+    "Fact Check|opinion|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-false-positive": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ]
+      }
+    },
+    "Fact Check|opinion|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-false-positive": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ]
+      }
+    },
+    "Fact Check|outline|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-false-positive": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ]
+      }
+    },
+    "Fact Check|outline|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-false-positive": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ]
+      }
+    },
+    "Fact Check|outline|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-false-positive": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ]
+      }
+    },
+    "Fact Check|question|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-false-positive": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ]
+      }
+    },
+    "Fact Check|question|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-false-positive": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ]
+      }
+    },
+    "Fact Check|question|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-false-positive": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ]
+      }
+    },
+    "Fact Check|true-claim|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-false-positive": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ]
+      }
+    },
+    "Fact Check|true-claim|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-false-positive": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ]
+      }
+    },
+    "Fact Check|true-claim|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          1,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-false-positive": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ]
+      }
+    },
+    "Polish|code|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "keeps-code": [
+          3,
+          3
+        ]
+      }
+    },
+    "Polish|code|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          0,
+          0
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "keeps-code": [
+          3,
+          3
+        ]
+      }
+    },
+    "Polish|code|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "keeps-code": [
+          3,
+          3
+        ]
+      }
+    },
+    "Polish|empty-ish|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          0,
+          0
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "no-bloat": [
+          3,
+          3
+        ]
+      }
+    },
+    "Polish|empty-ish|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          0,
+          0
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "no-bloat": [
+          3,
+          3
+        ]
+      }
+    },
+    "Polish|empty-ish|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          0,
+          3
+        ],
+        "no-bloat": [
+          3,
+          3
+        ]
+      }
+    },
+    "Polish|false-claim|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Polish|false-claim|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Polish|false-claim|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Polish|opinion|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Polish|opinion|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Polish|opinion|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Polish|outline|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "outline-shape": [
+          3,
+          3
+        ]
+      }
+    },
+    "Polish|outline|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "outline-shape": [
+          3,
+          3
+        ]
+      }
+    },
+    "Polish|outline|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "outline-shape": [
+          3,
+          3
+        ]
+      }
+    },
+    "Polish|question|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "no-answer": [
+          3,
+          3
+        ]
+      }
+    },
+    "Polish|question|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "no-answer": [
+          3,
+          3
+        ]
+      }
+    },
+    "Polish|question|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "no-answer": [
+          3,
+          3
+        ]
+      }
+    },
+    "Polish|true-claim|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Polish|true-claim|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Polish|true-claim|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Shorten|code|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "keeps-code": [
+          3,
+          3
+        ]
+      }
+    },
+    "Shorten|code|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          0,
+          0
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "keeps-code": [
+          3,
+          3
+        ]
+      }
+    },
+    "Shorten|code|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "keeps-code": [
+          3,
+          3
+        ]
+      }
+    },
+    "Shorten|empty-ish|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          0,
+          0
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "no-bloat": [
+          3,
+          3
+        ]
+      }
+    },
+    "Shorten|empty-ish|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          0,
+          0
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "no-bloat": [
+          3,
+          3
+        ]
+      }
+    },
+    "Shorten|empty-ish|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          0,
+          3
+        ],
+        "no-bloat": [
+          3,
+          3
+        ]
+      }
+    },
+    "Shorten|false-claim|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Shorten|false-claim|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Shorten|false-claim|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Shorten|opinion|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Shorten|opinion|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Shorten|opinion|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Shorten|outline|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "outline-shape": [
+          3,
+          3
+        ]
+      }
+    },
+    "Shorten|outline|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "outline-shape": [
+          3,
+          3
+        ]
+      }
+    },
+    "Shorten|outline|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "outline-shape": [
+          3,
+          3
+        ]
+      }
+    },
+    "Shorten|question|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "no-answer": [
+          3,
+          3
+        ]
+      }
+    },
+    "Shorten|question|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "no-answer": [
+          3,
+          3
+        ]
+      }
+    },
+    "Shorten|question|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "no-answer": [
+          3,
+          3
+        ]
+      }
+    },
+    "Shorten|true-claim|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Shorten|true-claim|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Shorten|true-claim|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Summarize|code|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ]
+      }
+    },
+    "Summarize|code|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ]
+      }
+    },
+    "Summarize|code|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ]
+      }
+    },
+    "Summarize|empty-ish|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          0,
+          0
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ]
+      }
+    },
+    "Summarize|empty-ish|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          0,
+          0
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ]
+      }
+    },
+    "Summarize|empty-ish|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ]
+      }
+    },
+    "Summarize|false-claim|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ]
+      }
+    },
+    "Summarize|false-claim|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ]
+      }
+    },
+    "Summarize|false-claim|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ]
+      }
+    },
+    "Summarize|opinion|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ]
+      }
+    },
+    "Summarize|opinion|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ]
+      }
+    },
+    "Summarize|opinion|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ]
+      }
+    },
+    "Summarize|outline|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ],
+        "shorter": [
+          3,
+          3
+        ]
+      }
+    },
+    "Summarize|outline|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ],
+        "shorter": [
+          3,
+          3
+        ]
+      }
+    },
+    "Summarize|outline|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ],
+        "shorter": [
+          3,
+          3
+        ]
+      }
+    },
+    "Summarize|question|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ],
+        "no-answer": [
+          3,
+          3
+        ]
+      }
+    },
+    "Summarize|question|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ],
+        "no-answer": [
+          3,
+          3
+        ]
+      }
+    },
+    "Summarize|question|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ],
+        "no-answer": [
+          3,
+          3
+        ]
+      }
+    },
+    "Summarize|true-claim|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ]
+      }
+    },
+    "Summarize|true-claim|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ]
+      }
+    },
+    "Summarize|true-claim|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "one-line": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Casual|code|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "keeps-code": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Casual|code|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          0,
+          0
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "keeps-code": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Casual|code|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "keeps-code": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Casual|empty-ish|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          0,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "no-bloat": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Casual|empty-ish|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "no-bloat": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Casual|empty-ish|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          0,
+          3
+        ],
+        "no-bloat": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Casual|false-claim|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Casual|false-claim|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Casual|false-claim|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Casual|opinion|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Casual|opinion|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Casual|opinion|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Casual|outline|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "outline-shape": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Casual|outline|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "outline-shape": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Casual|outline|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "outline-shape": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Casual|question|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "no-answer": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Casual|question|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "no-answer": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Casual|question|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "no-answer": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Casual|true-claim|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Casual|true-claim|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Casual|true-claim|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Confident|code|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "keeps-code": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Confident|code|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          0,
+          0
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "keeps-code": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Confident|code|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "keeps-code": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Confident|empty-ish|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          0,
+          0
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "no-bloat": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Confident|empty-ish|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          0,
+          0
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "no-bloat": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Confident|empty-ish|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          0,
+          3
+        ],
+        "no-bloat": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Confident|false-claim|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Confident|false-claim|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Confident|false-claim|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Confident|opinion|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Confident|opinion|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Confident|opinion|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Confident|outline|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "outline-shape": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Confident|outline|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "outline-shape": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Confident|outline|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "outline-shape": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Confident|question|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "no-answer": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Confident|question|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "no-answer": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Confident|question|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "no-answer": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Confident|true-claim|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Confident|true-claim|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Confident|true-claim|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Friendly|code|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "keeps-code": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Friendly|code|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          0,
+          0
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "keeps-code": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Friendly|code|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "keeps-code": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Friendly|empty-ish|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          2,
+          2
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "no-bloat": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Friendly|empty-ish|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "no-bloat": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Friendly|empty-ish|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          0,
+          3
+        ],
+        "no-bloat": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Friendly|false-claim|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Friendly|false-claim|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Friendly|false-claim|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Friendly|opinion|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Friendly|opinion|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Friendly|opinion|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Friendly|outline|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "outline-shape": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Friendly|outline|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "outline-shape": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Friendly|outline|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "outline-shape": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Friendly|question|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "no-answer": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Friendly|question|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "no-answer": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Friendly|question|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "no-answer": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Friendly|true-claim|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Friendly|true-claim|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Friendly|true-claim|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Professional|code|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "keeps-code": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Professional|code|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          0,
+          0
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "keeps-code": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Professional|code|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "keeps-code": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Professional|empty-ish|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          0,
+          0
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "no-bloat": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Professional|empty-ish|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "no-bloat": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Professional|empty-ish|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          0,
+          3
+        ],
+        "no-bloat": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Professional|false-claim|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Professional|false-claim|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Professional|false-claim|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Professional|opinion|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Professional|opinion|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Professional|opinion|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Professional|outline|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "outline-shape": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Professional|outline|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "outline-shape": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Professional|outline|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "outline-shape": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Professional|question|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "no-answer": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Professional|question|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "no-answer": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Professional|question|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ],
+        "no-answer": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Professional|true-claim|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Professional|true-claim|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Tone: Professional|true-claim|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "no-preamble": [
+          3,
+          3
+        ]
+      }
+    },
+    "Verify Online|code|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          1,
+          2
+        ],
+        "clean": [
+          2,
+          2
+        ],
+        "real-urls": [
+          0,
+          0
+        ],
+        "nothing-to-verify": [
+          1,
+          2
+        ]
+      }
+    },
+    "Verify Online|code|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "real-urls": [
+          0,
+          0
+        ],
+        "nothing-to-verify": [
+          1,
+          3
+        ]
+      }
+    },
+    "Verify Online|code|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          1,
+          1
+        ],
+        "clean": [
+          1,
+          1
+        ],
+        "real-urls": [
+          0,
+          0
+        ],
+        "nothing-to-verify": [
+          0,
+          1
+        ]
+      }
+    },
+    "Verify Online|empty-ish|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "real-urls": [
+          0,
+          0
+        ],
+        "nothing-to-verify": [
+          3,
+          3
+        ]
+      }
+    },
+    "Verify Online|empty-ish|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "real-urls": [
+          0,
+          0
+        ],
+        "nothing-to-verify": [
+          3,
+          3
+        ]
+      }
+    },
+    "Verify Online|empty-ish|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          1,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "real-urls": [
+          0,
+          0
+        ],
+        "nothing-to-verify": [
+          3,
+          3
+        ]
+      }
+    },
+    "Verify Online|opinion|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          1,
+          1
+        ],
+        "clean": [
+          1,
+          1
+        ],
+        "real-urls": [
+          0,
+          0
+        ],
+        "nothing-to-verify": [
+          1,
+          1
+        ]
+      }
+    },
+    "Verify Online|opinion|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "real-urls": [
+          0,
+          0
+        ],
+        "nothing-to-verify": [
+          2,
+          3
+        ]
+      }
+    },
+    "Verify Online|opinion|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          1,
+          1
+        ],
+        "clean": [
+          1,
+          1
+        ],
+        "real-urls": [
+          0,
+          0
+        ],
+        "nothing-to-verify": [
+          0,
+          1
+        ]
+      }
+    },
+    "Verify Online|outline|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "real-urls": [
+          0,
+          0
+        ],
+        "nothing-to-verify": [
+          3,
+          3
+        ]
+      }
+    },
+    "Verify Online|outline|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "real-urls": [
+          0,
+          0
+        ],
+        "nothing-to-verify": [
+          3,
+          3
+        ]
+      }
+    },
+    "Verify Online|outline|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          2,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "real-urls": [
+          0,
+          0
+        ],
+        "nothing-to-verify": [
+          1,
+          3
+        ]
+      }
+    },
+    "Verify Online|question|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "real-urls": [
+          0,
+          0
+        ],
+        "nothing-to-verify": [
+          3,
+          3
+        ]
+      }
+    },
+    "Verify Online|question|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "real-urls": [
+          0,
+          0
+        ],
+        "nothing-to-verify": [
+          3,
+          3
+        ]
+      }
+    },
+    "Verify Online|question|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          0,
+          2
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "real-urls": [
+          0,
+          0
+        ],
+        "nothing-to-verify": [
+          2,
+          3
+        ]
+      }
+    },
+    "Verify Online|true-claim|de": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          2,
+          2
+        ],
+        "clean": [
+          2,
+          2
+        ],
+        "real-urls": [
+          2,
+          2
+        ],
+        "confirms": [
+          2,
+          2
+        ],
+        "sourced": [
+          2,
+          2
+        ]
+      }
+    },
+    "Verify Online|true-claim|en": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "real-urls": [
+          3,
+          3
+        ],
+        "confirms": [
+          3,
+          3
+        ],
+        "sourced": [
+          3,
+          3
+        ]
+      }
+    },
+    "Verify Online|true-claim|zh": {
+      "n": 3,
+      "model": "deepseek-chat",
+      "props": {
+        "language": [
+          3,
+          3
+        ],
+        "clean": [
+          3,
+          3
+        ],
+        "real-urls": [
+          3,
+          3
+        ],
+        "confirms": [
+          3,
+          3
+        ],
+        "sourced": [
+          3,
+          3
+        ]
+      }
+    }
+  }
+}

@@ -10,6 +10,11 @@ import { IPrompt, PromptOutputType } from './type';
  * This command was where the old `SAME_LANGUAGE` wording failed most visibly
  * (English questions answered in Chinese, 6 runs out of 6); the cause was the
  * wording, not this command, and is explained on the constant.
+ *
+ * Run on a block with no question in it ("Ok, notiert.", a to-do list) it said
+ * "I can't tell what question you want answered" in English whatever the
+ * block's language (live suite: German 1/3, Chinese 1/3 in the block's
+ * language). The no-question sentence fixes that: 2/2 in each language.
  */
 export const AskOnline: IPrompt = {
   name: 'Ask Online',
@@ -26,6 +31,7 @@ Search first. Do not answer from memory — your own knowledge has a cutoff and 
 Answer in a few sentences, then list the sources you used as bare URLs, one per line.
 If the answer depends on a date, a time zone or a place, say which one you are giving.
 If the sources disagree, say so and give the range rather than picking one. If they do not answer the question, say that instead of guessing.
+If the text contains no question at all, say so in one sentence — written in the language of the text, not in the language of these instructions — and cite nothing.
 Do not repeat the question back.`,
   output: PromptOutputType.insert,
   requiresSearch: true,

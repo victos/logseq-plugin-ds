@@ -5,9 +5,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "lint": "eslint src test --ext .ts",
+    "lint": "eslint src test live --ext .ts",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:live": "vitest run --config live/vitest.config.ts",
     "preinstall": "npx only-allow pnpm"
   },
   "license": "MIT",
