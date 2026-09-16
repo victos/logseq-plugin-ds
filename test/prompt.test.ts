@@ -204,6 +204,20 @@ describe('built-in prompts', () => {
     }
   });
 
+  // Reported in use: a block that was only a question ("how's the weather
+  // today?") came back with four invented "claims", all marked wrong even
+  // where the sources agreed with them.
+  it('Verify Online refuses to invent claims and keeps the verdicts apart', () => {
+    const verify = PRESETS.find((p) => p.name === 'Verify Online');
+    expect(verify).toBeDefined();
+    expect(verify!.prompt).toMatch(/nothing to verify/i);
+    expect(verify!.prompt).toMatch(/never invent a claim/i);
+    expect(verify!.prompt).toMatch(/A question, a request, a heading .* is not a claim/i);
+    // The ✅/❌ split has to be stated, not just shown in the format list.
+    expect(verify!.prompt).toMatch(/Use ✅ whenever the sources agree/i);
+    expect(verify!.prompt).toMatch(/Use ❌ only when the sources contradict/i);
+  });
+
   // The registration list is written by hand, so a new prompt file that nobody
   // added to it would otherwise ship as a dead file. Load the files themselves
   // rather than what index.ts chose to re-export.

@@ -16,15 +16,17 @@ export const VerifyOnline: IPrompt = {
 """
 {content}
 """
-Search first — at least once, and again for every separate claim worth checking. Do not answer from memory.
+First decide what in the text is actually a factual claim — a statement that could be true or false. A question, a request, a heading or a note to yourself is not a claim. If the text makes no factual claim, reply with one single line saying there is nothing to verify, and stop. Never invent a claim the text does not make, and never restate the text's topic as if it were a claim.
 
-Write one line per claim you checked, in one of these three forms:
+For each claim the text really does make, search before judging. Do not answer from memory.
+
+Write one line per claim, quoting the claim as the text words it, in one of these three forms:
 ✅ <the claim> — <url>
-❌ <the claim> → <what the sources say> — <url>
+❌ <the claim> → <what the sources say instead> — <url>
 ❓ <the claim> — no reliable source found
 
-Every ✅ and ❌ line must end with the URL of the source it rests on. Use a real URL from the search results, never one you made up.
-Check the claims that can be checked; say nothing about matters of opinion or prediction.`,
+Use ✅ whenever the sources agree with the claim. Use ❌ only when the sources contradict it — never for a claim the sources confirm, and never merely to add detail. Every ✅ and ❌ line must end with a real URL from the search results, never one you made up.
+Say nothing about matters of opinion or prediction.`,
   output: PromptOutputType.insert,
   format: [],
   requiresSearch: true,

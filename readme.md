@@ -219,6 +219,11 @@ searches instead, and every verdict it writes carries the URL it rests on:
   - ❓ <a claim no source settled>
 ```
 
+`/Verify Online` only checks what the text actually asserts. A block that is a question, a
+heading or a note to yourself has nothing to verify, and it says so in one line rather than
+inventing claims to check. A claim the sources agree with gets a ✅, not a ❌ with the source
+restated as though it were a correction.
+
 It is **off unless you set a Web Search API Key** in the settings — get one from
 [tavily.com](https://tavily.com), whose free tier is 1,000 searches a month. Without a key the
 command is not registered at all and nothing else changes; after setting one, reload the plugin.
