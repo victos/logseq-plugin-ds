@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/victos/logseq-plugin-ds/compare/v1.2.0...v1.2.1) (2026-09-16)
+
+
+### Bug Fixes
+
+* /Expand destroyed code blocks, /Fact Check nitpicked rounded figures ([ddaadbc](https://github.com/victos/logseq-plugin-ds/commit/ddaadbc05e3c246f26ad2d3951a1ba68c66d0331))
+
 # [1.2.0](https://github.com/victos/logseq-plugin-ds/compare/v1.1.1...v1.2.0) (2026-09-16)
 
 
