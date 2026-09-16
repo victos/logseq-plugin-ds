@@ -335,7 +335,14 @@ Each entry takes:
 | `output` | yes | Where the answer goes — see the table below |
 | `system` | no | Sets the model's role, e.g. `"You are a careful technical editor."` |
 | `model` | no | Use a different model just for this command |
+| `search` | no | `true` makes the command search the web before answering, like `/Ask Online`. Needs the Web Search API Key; costs a few searches and 5-20 seconds per run |
 | `format` | no | `[]` to get a list (one item per line, one child block each), or `{"key": "description"}` to get named fields |
+
+A custom prompt can search too — add `"search": true` and it goes through the same loop as
+`/Ask Online`, looking things up before it answers. It needs the Web Search API Key, and unlike
+the built-in searching commands (which simply are not registered without one) a custom prompt
+asking for search without a key is reported in the warning toast, so a command you wrote
+yourself never disappears without explanation.
 
 The four `output` modes, using the block `Q3 revenue grew 12% but churn also rose.`:
 

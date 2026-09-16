@@ -112,6 +112,42 @@ describe('resolvePrompts', () => {
     expect(names(true).length).toBe(names(false).length + gated.length);
   });
 
+  it('lets a custom prompt ask for web search', () => {
+    const news = { name: 'News', prompt: 'latest on {{text}}', output: 'insert', search: true };
+    const { prompts, problems } = resolvePrompts(PRESETS, { enable: true, prompts: [news] }, true);
+    expect(problems).toEqual([]);
+    expect(prompts.find((p) => p.name === 'News')).toMatchObject({ requiresSearch: true });
+  });
+
+  // The built-ins vanish quietly without a key; a command the user wrote would
+  // just look broken, so it is reported instead.
+  it('says why a searching custom prompt is missing when there is no key', () => {
+    const news = { name: 'News', prompt: 'latest on {{text}}', output: 'insert', search: true };
+    const { prompts, problems } = resolvePrompts(PRESETS, { enable: true, prompts: [news] }, false);
+    expect(prompts.some((p) => p.name === 'News')).toBe(false);
+    expect(problems).toEqual([
+      '"News" asks for "search" but no Web Search API Key is set; add one in the settings or ' +
+        'remove "search" from the prompt',
+    ]);
+  });
+
+  it('rejects a non-boolean "search"', () => {
+    const bad = { name: 'X', prompt: 'p {{text}}', output: 'insert', search: 'yes' };
+    const { problems } = resolvePrompts(PRESETS, { enable: true, prompts: [bad] }, true);
+    expect(problems).toEqual(['"X" has an invalid "search" ("yes"); it must be true or false']);
+  });
+
+  it('search: false is the same as leaving it out', () => {
+    const off = { name: 'X', prompt: 'p {{text}}', output: 'insert', search: false };
+    const { prompts, problems } = resolvePrompts(PRESETS, { enable: true, prompts: [off] }, false);
+    expect(problems).toEqual([]);
+    expect(prompts.find((p) => p.name === 'X')).toEqual({
+      name: 'X',
+      prompt: 'p {{text}}',
+      output: 'insert',
+    });
+  });
+
   it('keeps the last of two custom prompts with the same name', () => {
     const { prompts } = resolvePrompts(PRESETS, {
       enable: true,

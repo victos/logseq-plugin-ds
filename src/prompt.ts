@@ -72,6 +72,17 @@ export function validateCustomPrompt(
   if (model) {
     resolved.model = model;
   }
+  if (raw.search !== undefined && raw.search !== null) {
+    if (typeof raw.search !== 'boolean') {
+      return {
+        problem: `"${name}" has an invalid "search" (${JSON.stringify(raw.search)}); ` +
+          'it must be true or false',
+      };
+    }
+    if (raw.search) {
+      resolved.requiresSearch = true;
+    }
+  }
   if (raw.format !== undefined && raw.format !== null) {
     const format = raw.format;
     const shaped = Array.isArray(format) || (typeof format === 'object' && !Array.isArray(format));
@@ -140,9 +151,19 @@ export function resolvePrompts(
       const result = validateCustomPrompt(entry, index);
       if ('problem' in result) {
         problems.push(result.problem);
-      } else {
-        byName.set(result.prompt.name, result.prompt);
+        return;
       }
+      // The built-ins vanish quietly without a key — the user never asked for
+      // them by name. A custom command they wrote themselves disappearing
+      // would just look broken, so say why.
+      if (result.prompt.requiresSearch && !searchAvailable) {
+        problems.push(
+          `"${result.prompt.name}" asks for "search" but no Web Search API Key is set; ` +
+            'add one in the settings or remove "search" from the prompt',
+        );
+        return;
+      }
+      byName.set(result.prompt.name, result.prompt);
     });
   } else if (custom_.problem) {
     problems.push(custom_.problem);
