@@ -25,12 +25,94 @@ export interface SplitContent {
 // `key:: value` or a bare `key::`. The whitespace after `::` is required so that
 // `std::vector` or `a::b` inside prose is not mistaken for a property.
 const PROPERTY_LINE = /^\s*([^\s:]+)::(?:\s.*)?$/;
-// A fence opener or closer on a line of its own; "```x```" inline is neither.
-const FENCE_LINE = /^\s*(?:```|~~~)(?!.*(?:```|~~~)\s*$)/;
+// A fence marker on a line of its own, CommonMark style: three or more
+// backticks (or tildes) with an optional info string that cannot contain the
+// marker character. "```x```" and "```x``` more" are inline code, not fences.
+const FENCE_OPEN = /^\s*(?:(`{3,})[^`]*|(~{3,})[^~]*)$/;
+const FENCE_CLOSE = /^\s*(`{3,}|~{3,})\s*$/;
 
-/** Whether the line opens or closes a fenced code block. */
+/** The marker run of a line that opens a fence (or is a bare marker), else `undefined`. */
+export function fenceMarker(line: string): string | undefined {
+  const match = FENCE_OPEN.exec(line);
+  return match ? match[1] ?? match[2] : undefined;
+}
+
+/** Whether the line closes a fence opened with `marker`: same character, at least as long, nothing else. */
+function closesFence(line: string, marker: string): boolean {
+  const match = FENCE_CLOSE.exec(line);
+  return match !== null && match[1][0] === marker[0] && match[1].length >= marker.length;
+}
+
+/** Whether the line is a fence marker (opening or closing); nothing else may share such a line. */
 export function isFenceLine(line: string): boolean {
-  return FENCE_LINE.test(line);
+  return fenceMarker(line) !== undefined;
+}
+
+export type FenceRole = 'text' | 'open' | 'code' | 'close';
+
+/**
+ * Where each line stands with respect to fenced code. A fence runs from an
+ * opener to the first closer of the same kind; an opener with no closer below
+ * it is plain text. Without that last rule one stray ``` in a note would
+ * silently turn every line after it — property lines, sibling points — into
+ * code, and a rewrite would then merge all of them into one block.
+ */
+export function fenceRoles(
+  lines: string[],
+  openerText: (line: string) => string = (line) => line,
+  /** A line the fence opened at `opener` cannot run across; reaching one leaves the opener plain text. */
+  barrier: (opener: string, line: string) => boolean = () => false,
+): FenceRole[] {
+  const roles: FenceRole[] = new Array(lines.length).fill('text');
+  for (let i = 0; i < lines.length; i++) {
+    const marker = fenceMarker(openerText(lines[i]));
+    if (!marker) continue;
+    let end = -1;
+    for (let j = i + 1; j < lines.length; j++) {
+      if (closesFence(lines[j], marker)) {
+        end = j;
+        break;
+      }
+      if (barrier(lines[i], lines[j])) break;
+    }
+    if (end === -1) continue;
+    roles[i] = 'open';
+    roles.fill('code', i + 1, end);
+    roles[end] = 'close';
+    i = end;
+  }
+  return roles;
+}
+
+/**
+ * `text` without any `id::` property line outside a fence. Logseq owns that
+ * property — it is the block's identity, written when something references
+ * the block — so a line of it in model output can only be an echo of one the
+ * model was shown, and written back it would hand this block another block's
+ * identity. Lines inside a code fence are content and stay.
+ */
+export function withoutIdProperty(text: string): string {
+  const lines = text.split('\n');
+  const roles = fenceRoles(lines);
+  return lines.filter((line, i) => roles[i] !== 'text' || propertyLineKey(line) !== 'id').join('\n');
+}
+
+/**
+ * `text` with a fence still open at its end closed. Logseq renders such a
+ * block as code to its end, so the closer changes nothing on screen — but an
+ * outline that carries an unclosed fence would have it swallow every point
+ * after it when the reply is parsed back.
+ */
+export function closeFences(text: string): string {
+  let open: string | undefined;
+  for (const line of text.split('\n')) {
+    if (open) {
+      if (closesFence(line, open)) open = undefined;
+    } else {
+      open = fenceMarker(line);
+    }
+  }
+  return open ? `${text}\n${open}` : text;
 }
 
 export function propertyLineKey(line: string): string | undefined {
@@ -59,18 +141,16 @@ export function isHiddenProperty(key: string): boolean {
 export function splitProperties(content: string): SplitContent {
   const body: string[] = [];
   const properties: string[] = [];
-  let inFence = false;
+  const lines = content.split('\n');
+  const roles = fenceRoles(lines);
 
-  for (const line of content.split('\n')) {
-    if (isFenceLine(line)) {
-      inFence = !inFence;
-      body.push(line);
-    } else if (!inFence && propertyLineKey(line) !== undefined) {
+  lines.forEach((line, i) => {
+    if (roles[i] === 'text' && propertyLineKey(line) !== undefined) {
       properties.push(line.trim());
     } else {
       body.push(line);
     }
-  }
+  });
 
   return { body: body.join('\n').trim(), properties };
 }
@@ -102,6 +182,8 @@ export function blockContent(block: BlockLike): string {
  * the root's text, then each child as an indented `- ` item. Metadata is
  * dropped: `textOf` decides how one block's prose is extracted, which differs
  * between file graphs (strip `key:: value` lines) and DB graphs (use `title`).
+ * A code fence a block leaves open is closed at the block's end, so that the
+ * outline is well-formed as a whole and the reply parses back block by block.
  *
  * A child carrying `excludeTag` is treated as this plugin's own earlier output
  * and is left out together with its subtree: feeding an `/Ask AI` answer back
@@ -115,7 +197,7 @@ export function blockToText(
   textOf: (block: BlockLike) => string = fileText,
   excludeTag = '',
 ): string {
-  const lines = [textOf(block)];
+  const lines = [closeFences(textOf(block))];
 
   const walk = (children: unknown, level: number) => {
     if (!Array.isArray(children)) {
@@ -125,7 +207,7 @@ export function blockToText(
       if (!isBlock(child)) {
         continue;
       }
-      const body = textOf(child);
+      const body = closeFences(textOf(child));
       if (hasTag(body, excludeTag)) {
         continue;
       }
@@ -196,16 +278,39 @@ export function hasTag(text: string, tag: string): boolean {
   return tagPattern(tag)?.test(text) ?? false;
 }
 
-/** Whether the last line of `text` is a fence marker, which nothing may share. */
-function endsWithFenceLine(text: string): boolean {
-  return isFenceLine(text.slice(text.lastIndexOf('\n') + 1));
+/**
+ * Whether nothing may be added to the last line of `text`: a fence marker
+ * (a tag after "```" stops it closing) or a `key:: value` line (a tag after
+ * it becomes part of the value, and the block itself is left untagged).
+ */
+function endsWithReservedLine(text: string): boolean {
+  const last = text.slice(text.lastIndexOf('\n') + 1);
+  return isFenceLine(last) || propertyLineKey(last) !== undefined;
 }
 
 /**
- * Appends the tag to the end of `text` unless it is already present. A tag on
- * the same line as a closing fence would stop it closing ("``` #tag" is not a
- * fence, and everything after it renders as code), so after a fence the tag
- * goes on a line of its own.
+ * Whether `addition` cannot continue a line of prose: it opens with a code
+ * fence, a table row, a quote, a list item or a heading, which Markdown only
+ * recognises at the start of a line.
+ */
+function startsBlockConstruct(addition: string): boolean {
+  const [first] = addition.split('\n');
+  return TITLELESS_FIRST_LINE.test(first) || /^\s*#+\s/.test(first);
+}
+
+/**
+ * Where something may be added after `text`: on its last line, or below it. A
+ * fence left open is closed first — what is added must not land inside it,
+ * and an addition that opens a fence of its own would otherwise close it.
+ */
+function placeAfter(text: string): { base: string; ownLine: boolean } {
+  const base = closeFences(text);
+  return { base, ownLine: base !== text || endsWithReservedLine(base) };
+}
+
+/**
+ * Appends the tag to the end of `text` unless it is already present. After a
+ * closing fence or a property line the tag goes on a line of its own.
  */
 export function withTag(text: string, tag: string): string {
   const token = tag.trim();
@@ -215,15 +320,21 @@ export function withTag(text: string, tag: string): string {
   if (!text) {
     return token;
   }
-  return endsWithFenceLine(text) ? `${text}\n${token}` : `${text}${tag}`;
+  const { base, ownLine } = placeAfter(text);
+  return ownLine ? `${base}\n${token}` : `${base}${tag}`;
 }
 
-/** `text` followed by `addition`: on the same line, or below a closing fence. */
+/**
+ * `text` followed by `addition`: on the same line when both are prose, on a
+ * new line when the text ends with a fence or property line or the addition
+ * opens with something that must start a line.
+ */
 export function appendToText(text: string, addition: string): string {
   if (!text) {
     return addition;
   }
-  return endsWithFenceLine(text) ? `${text}\n${addition}` : `${text} ${addition}`;
+  const { base, ownLine } = placeAfter(text);
+  return ownLine || startsBlockConstruct(addition) ? `${base}\n${addition}` : `${base} ${addition}`;
 }
 
 /** Removes the tag token from text before it is sent to the model. */
@@ -304,8 +415,13 @@ export function joinBlock(body: string, properties: string[]): string {
   return [first, ...properties, ...rest].join('\n');
 }
 
+/** A property line; a bare `key::` when the value is empty, as Logseq writes it. */
+function propertyLine(key: string, value: string): string {
+  return value ? `${key}:: ${value}` : `${key}::`;
+}
+
 function upsertProperty(properties: string[], key: string, value: string): string[] {
-  const line = `${key}:: ${value}`;
+  const line = propertyLine(key, value);
   const index = properties.findIndex((existing) => propertyLineKey(existing) === key);
   if (index === -1) {
     return [...properties, line];
@@ -321,14 +437,35 @@ export function composeProperty(content: string, key: string, value: string, tag
   return joinBlock(withTag(body, tag), upsertProperty(properties, key, propertyValue(value)));
 }
 
+/**
+ * The block's properties, plus any `key:: value` line from the response whose
+ * key the block does not have. To a file graph a property line is a property
+ * wherever it stands, so one the model wrote is treated as such from the
+ * start — set once, not left in the body to be read as a second copy on the
+ * next pass. It never replaces one of the block's own: the model is not shown
+ * properties, so a key it repeats is not an edit of the user's value.
+ */
+function mergeResponse(properties: string[], response: string): { body: string; properties: string[] } {
+  const reply = splitProperties(response);
+  const merged = [...properties];
+  for (const line of reply.properties) {
+    const key = propertyLineKey(line)!;
+    if (!merged.some((existing) => propertyLineKey(existing) === key)) {
+      merged.push(propertyLine(key, line.slice(line.indexOf('::') + 2).trim()));
+    }
+  }
+  return { body: reply.body, properties: merged };
+}
+
 /** `append` output: response follows the existing text; properties are preserved. */
 export function composeAppend(content: string, response: string, tag: string): string {
-  const { body, properties } = splitProperties(content);
-  return joinBlock(withTag(appendToText(body, response), tag), properties);
+  const current = splitProperties(content);
+  const { body, properties } = mergeResponse(current.properties, response);
+  return joinBlock(withTag(appendToText(current.body, body), tag), properties);
 }
 
 /** `replace` output: response replaces the text; properties are preserved. */
 export function composeReplace(content: string, response: string, tag: string): string {
-  const { properties } = splitProperties(content);
-  return joinBlock(withTag(response, tag), properties);
+  const { body, properties } = mergeResponse(splitProperties(content).properties, response);
+  return joinBlock(withTag(body, tag), properties);
 }

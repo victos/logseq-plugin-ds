@@ -70,8 +70,8 @@ built into the preset prompts only; custom prompts say whatever you tell them to
 
 Everything the AI writes is tagged `#[[🤖]]` so you can find it later: replaced or appended
 text, every child block it inserts, and a block that gained a property. The tag goes at the end
-of the text — or on the line after a closing code fence, since `` ``` #[[🤖]] `` would stop the
-fence closing. You can change or remove the tag in the settings.
+of the text — or on a line of its own after a closing code fence (`` ``` #[[🤖]] `` would stop the
+fence closing) or after a `key:: value` line (the tag would become part of the value). You can change or remove the tag in the settings.
 
 ### Giving it context
 
@@ -128,9 +128,13 @@ all, so nothing has to be reassembled.
 `/Tone:`, `/Summarize` and `/Shorten` were each run on a block with children; the property was
 created and set, the subtree was rewritten, and a `((reference))` to one of the rewritten
 children still resolved afterwards. `marketplace/manifest.json` declares `supportsDB: true` on
-that basis. One thing added since has not run inside Logseq on either backend: when a rewrite
-adds a point under a parent that already has one, it is now inserted as the sibling after that
-point (`insertBlock(…, { sibling: true })`) rather than as the parent's last child.
+that basis. What has been added since has not run inside Logseq on either backend, only
+against an in-memory graph in the tests: a point a rewrite adds under a parent that already has
+one is inserted as the sibling after that point (`insertBlock(…, { sibling: true })`) rather
+than as the parent's last child; a fence a block leaves open is closed in the outline the model
+sees; a reply wrapped in a code fence is unwrapped; a Markdown list inside a block survives a
+tab-indented reply; and a `key:: value` or `id::` line the model writes is handled as described
+under *Rewriting a block that has children*.
 
 Three details were confirmed separately through Logseq's CLI rather than inferred from type
 definitions:
@@ -167,19 +171,29 @@ applies it back over the blocks that already exist, updating each in place so it
 and therefore any `((reference))` to it, and its properties — survives. The rewrite may merge
 or split lines: extra lines become new blocks, and blocks left over are removed.
 
-One thing is never removed: a block something links to. On a file graph that is a block
+Two things are never removed. A block something links to: on a file graph that is a block
 carrying `id::`, which Logseq writes only once a reference exists; on a DB graph the plugin
-does not query what links to a block, so **nothing is removed there at all**. The rule reaches
-into what the model was not shown: a surplus block is also kept when a referenced block sits
-under it inside the plugin's own tagged output, or under an empty block. Either way the surplus
-block stays put and a notification tells you how many were kept, for you to delete by hand.
+does not query what links to a block, so **nothing is removed there at all**. And a note of
+yours the model was never shown: a surplus block is kept when the plugin's own tagged output
+under it holds a block you wrote (a follow-up under an `/Ask AI` answer, say), or when a
+referenced block sits inside that output or under an empty block. The tagged output on its own
+goes with the point it answered. Either way the surplus block stays put and a notification
+tells you how many were kept, for you to delete by hand.
 
-A block with several lines — two paragraphs, a fenced code block — stays one block: a line
-without a bullet is read as the continuation of the point above it. The one shape the plugin
-cannot tell apart is a Markdown list written *inside* a single block (`- a` and `- b` on their
-own lines): that comes back as child blocks, and if the block already has children, the list
-items take their places in the line-up and the children are overwritten with them. Children the
-model was never shown are left out when the rewrite is lined up against the existing blocks:
+A block with several lines — two paragraphs, a fenced code block, a Markdown list — stays one
+block: a line without a bullet is read as the continuation of the point above it, and so is a
+list line (`- a`, `1. b`) that sits where a continuation line would — indented with the point's
+tabs plus two spaces, or unindented under the block itself. That relies on the reply keeping
+the tab indentation the model was given. A reply indented with spaces alone cannot tell a list
+line from a sub-point, and neither can a block with no children, where there is no tab anywhere
+to measure against; in those two cases a list inside the block comes back as child blocks. A
+code fence a block leaves open is closed in the outline the model sees, so it cannot swallow
+the points after it; a reply the model wrapped whole in a ```` ```markdown ```` fence is
+unwrapped rather than written back as one code block (a code block being rewritten keeps a
+fence of its own kind, since there the fence is the content — but a ```` ```markdown ```` one
+is still the model's wrapper); and a `key:: value` line the model
+writes becomes a property of the block, set once, never replacing one the block already has.
+Children the model was never shown are left out when the rewrite is lined up against the existing blocks:
 the plugin's own tagged output, and blocks with no text of their own. So `/Polish` after
 `/Ask AI` on the same block leaves the answer where it is instead of writing over it, and a
 point the rewrite adds goes in right after the last point the model saw, not after that answer.

@@ -29,11 +29,14 @@ import {
   composeReplace,
   fileText,
   hasTag,
+  isFenceLine,
   propertyLineKey,
   propertyValue,
   readCurrentContent,
   splitProperties,
+  stripTag,
   withTag,
+  withoutIdProperty,
 } from './block';
 
 export interface BlockOps {
@@ -106,16 +109,18 @@ export class FileGraphOps implements BlockOps {
     return content === null ? null : splitProperties(content).body;
   }
 
+  // Model text is markdown to a file graph, so an `id::` line in it would
+  // become the block's identity; such lines are dropped before every write.
   async replaceText(uuid: string, text: string, tag: string) {
     const latest = await readCurrentContent(this.editor, uuid);
     if (latest === null) return;
-    await this.editor.updateBlock(uuid, composeReplace(latest, text, tag));
+    await this.editor.updateBlock(uuid, composeReplace(latest, withoutIdProperty(text), tag));
   }
 
   async appendText(uuid: string, addition: string, tag: string) {
     const latest = await readCurrentContent(this.editor, uuid);
     if (latest === null) return;
-    await this.editor.updateBlock(uuid, composeAppend(latest, addition, tag));
+    await this.editor.updateBlock(uuid, composeAppend(latest, withoutIdProperty(addition), tag));
   }
 
   async setProperty(uuid: string, key: string, value: string, tag: string) {
@@ -134,25 +139,33 @@ export class FileGraphOps implements BlockOps {
   }
 
   async rewriteSubtree(uuid: string, outline: string, tag: string) {
-    const rewritten = parseOutline(outline);
-    if (!rewritten) {
-      throw new Error('DeepSeek returned nothing to write back.');
-    }
     const block = await this.editor.getBlock(uuid, { includeChildren: true });
     if (!block) {
       return 0;
     }
+    const live = await readCurrentContent(this.editor, uuid);
+    const rewritten = parseReply(outline, splitProperties(live ?? blockContent(block)).body, tag);
     const steps = planRewrite(uuid, rewritten, this.toExisting(block as BlockLikeWithChildren, tag));
-    return applyPlan(this.editor, steps, async (target, text) => {
-      // Only the block the command was run on is tagged: tagging the rewritten
-      // children would hide them from the next command's context.
-      const current = (await readCurrentContent(this.editor, target)) ?? '';
-      await this.editor.updateBlock(target, composeReplace(current, text, target === uuid ? tag : ''));
-    });
+    return applyPlan(
+      this.editor,
+      steps,
+      async (target, text) => {
+        // Only the block the command was run on is tagged: tagging the rewritten
+        // children would hide them from the next command's context.
+        const current = (await readCurrentContent(this.editor, target)) ?? '';
+        await this.editor.updateBlock(
+          target,
+          composeReplace(current, withoutIdProperty(text), target === uuid ? tag : ''),
+        );
+      },
+      // A new block is laid out like a rewritten one, so the next pass finds
+      // it the same and changes nothing.
+      (text) => composeReplace('', withoutIdProperty(text), ''),
+    );
   }
 
   async insertChild(uuid: string, text: string) {
-    await this.editor.insertBlock(uuid, text);
+    await this.editor.insertBlock(uuid, composeReplace('', withoutIdProperty(text), ''));
   }
 }
 
@@ -249,14 +262,11 @@ export class DbGraphOps implements BlockOps {
   }
 
   async rewriteSubtree(uuid: string, outline: string, tag: string) {
-    const rewritten = parseOutline(outline);
-    if (!rewritten) {
-      throw new Error('DeepSeek returned nothing to write back.');
-    }
     const block = await this.editor.getBlock(uuid, { includeChildren: true });
     if (!block) {
       return 0;
     }
+    const rewritten = parseReply(outline, (await this.currentText(uuid)) ?? dbText(block), tag);
     const steps = planRewrite(uuid, rewritten, this.toExisting(block as BlockLikeWithChildren, tag));
     return applyPlan(this.editor, steps, async (target, text) => {
       await this.editor.updateBlock(target, target === uuid ? withTag(text, tag) : text);
@@ -268,9 +278,34 @@ export class DbGraphOps implements BlockOps {
   }
 }
 
+// A fence opener labelled as markdown: what a model wraps its whole reply in.
+const MARKDOWN_FENCE = /^\s*(?:`{3,}|~{3,})\s*(?:markdown|md)\s*$/i;
+
+/**
+ * The model's reply as a tree. A reply wrapped whole in a code fence is
+ * unwrapped — unless the block being rewritten opens with a fence itself, in
+ * which case a fence is its content. A ```` ```markdown ```` fence is the
+ * exception to the exception: a code block is not labelled markdown unless
+ * it was already, so on any other code block it is the model's wrapper, and
+ * taken literally it would pull every child into the block as code.
+ * "Opens with" is judged on the text as the model saw it, tag stripped: a
+ * block whose first line is only the tag and whose second line opens a fence
+ * is a code block to the model.
+ */
+function parseReply(outline: string, rootText: string, tag: string): OutlineNode {
+  const [first = ''] = stripTag(rootText, tag).trim().split('\n');
+  const [replyFirst = ''] = outline.trim().split('\n');
+  const wrapper = MARKDOWN_FENCE.test(replyFirst) && !MARKDOWN_FENCE.test(first);
+  const rewritten = parseOutline(outline, { unwrapFence: !isFenceLine(first) || wrapper });
+  if (!rewritten) {
+    throw new Error('DeepSeek returned nothing to write back.');
+  }
+  return rewritten;
+}
+
 interface ExistingTree {
   children: ExistingBlock[];
-  /** A block the model was not shown, somewhere below, is linked. */
+  /** A block the model was not shown, somewhere below, must not be lost. */
   hiddenLinked: boolean;
 }
 
@@ -281,9 +316,11 @@ interface ExistingTree {
  * the plugin's own output is skipped with its subtree and never touched, and a
  * child with no text of its own is stood in for by its children.
  *
- * What is left out can still be linked, and removing an ancestor would take it
- * along. So a linked block below a skipped one marks the nearest block that is
- * in the tree as linked, and the plan keeps that block.
+ * What is left out can still matter, and removing an ancestor would take it
+ * along: a linked block, or a note the user wrote under the plugin's answer
+ * and the model never saw. Either marks the nearest block that is in the tree
+ * as one to keep. The plugin's own tagged output on its own is not protected;
+ * it goes with the point it answered.
  */
 function existingChildren(
   block: BlockLikeWithChildren,
@@ -296,7 +333,7 @@ function existingChildren(
   for (const child of asBlocks(block.children)) {
     const text = textOf(child);
     if (hasTag(text, tag)) {
-      if (subtreeLinked(child, isLinked)) {
+      if (isLinked(child) || holdsUnseenContent(child, textOf, tag, isLinked)) {
         hiddenLinked = true;
       }
       continue;
@@ -319,11 +356,17 @@ function existingChildren(
   return { children, hiddenLinked };
 }
 
-function subtreeLinked(
+/** Whether anything below a skipped block is linked, or is text of the user's own. */
+function holdsUnseenContent(
   block: Record<string, unknown>,
+  textOf: (block: BlockLike) => string,
+  tag: string,
   isLinked: (child: Record<string, unknown>) => boolean,
 ): boolean {
-  return isLinked(block) || asBlocks(block.children).some((child) => subtreeLinked(child, isLinked));
+  return asBlocks(block.children).some((child) => {
+    const text = textOf(child);
+    return isLinked(child) || (Boolean(text) && !hasTag(text, tag)) || holdsUnseenContent(child, textOf, tag, isLinked);
+  });
 }
 
 /**
@@ -338,12 +381,14 @@ function hasIdProperty(block: Record<string, unknown>): boolean {
 /**
  * Runs a rewrite plan. `write` is backend-specific because a file graph has to
  * re-emit the block's property lines around the new text, while a DB graph
- * stores them separately and can set the text on its own.
+ * stores them separately and can set the text on its own; `compose` prepares
+ * the content of a new block the same way.
  */
 async function applyPlan(
   editor: EditorApi,
   steps: Step[],
   write: (uuid: string, text: string) => Promise<void>,
+  compose: (text: string) => string = (text) => text,
 ): Promise<number> {
   let kept = 0;
   // The last block put under each parent, so the next surplus line follows it.
@@ -355,7 +400,7 @@ async function applyPlan(
         break;
       case 'insert': {
         const after = lastInserted.get(step.parent) ?? step.after;
-        const uuid = await insertTree(editor, step.parent, after, step.text, step.children);
+        const uuid = await insertTree(editor, step.parent, after, step.text, step.children, compose);
         if (uuid) {
           lastInserted.set(step.parent, uuid);
         }
@@ -384,17 +429,19 @@ async function insertTree(
   after: string | undefined,
   text: string,
   children: OutlineNode[],
+  compose: (text: string) => string,
 ): Promise<string | undefined> {
+  const content = compose(text);
   const inserted = (after
-    ? await editor.insertBlock(after, text, { sibling: true })
-    : await editor.insertBlock(parent, text)) as { uuid?: unknown } | null;
+    ? await editor.insertBlock(after, content, { sibling: true })
+    : await editor.insertBlock(parent, content)) as { uuid?: unknown } | null;
   const uuid = inserted?.uuid;
   if (typeof uuid !== 'string' || !uuid) {
     return undefined;
   }
   let previous: string | undefined;
   for (const child of children) {
-    previous = (await insertTree(editor, uuid, previous, child.text, child.children)) ?? previous;
+    previous = (await insertTree(editor, uuid, previous, child.text, child.children, compose)) ?? previous;
   }
   return uuid;
 }

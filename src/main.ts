@@ -133,8 +133,8 @@ async function runPrompt(definition: IPrompt, uuid: string) {
       const kept = await ops.rewriteSubtree(uuid, response, tag);
       if (kept > 0) {
         await logseq.UI.showMsg(
-          `${kept} block(s) were left as they were: something links to them, and removing ` +
-            'them would break the reference. Delete them by hand if you want them gone.',
+          `${kept} block(s) were left as they were: something links to them, or they hold ` +
+            'notes DeepSeek was not shown. Delete them by hand if you want them gone.',
           'warning',
         );
       }
