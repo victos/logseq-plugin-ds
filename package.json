@@ -9,7 +9,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:live": "vitest run --config live/vitest.config.ts",
-    "preinstall": "npx only-allow pnpm"
+    "preinstall": "npx only-allow pnpm",
+    "docs:prompts": "WRITE_DOCS=1 vitest run test/prompt-reference.test.ts"
   },
   "license": "MIT",
   "dependencies": {

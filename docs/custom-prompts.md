@@ -68,3 +68,21 @@ If an entry is malformed — no `name`, no `prompt`, an `output` that isn't one 
 it loads. The same notice appears if the setting as a whole has the wrong shape: a list where
 the `{"enable": …, "prompts": […]}` object should be, or `enable` on with `prompts` missing or
 not a list. Nothing about custom prompts fails silently.
+
+## Starting from a built-in command
+
+A custom prompt whose `name` matches a built-in one **replaces it**, keeping its place in the
+slash menu. So the way to tweak `/Summarize` is to copy its prompt from
+[the built-in prompt reference](./built-in-prompts.md), change what you want, and add it as a
+custom prompt called `Summarize`.
+
+Know what you are taking on. These prompts have been through several rounds of correction with
+measurements behind them, and the wording is less forgiving than it looks — one sentence about
+what language to answer in made five commands reply in Chinese to English blocks; a placeholder
+one clause too long got copied into people's notes; merging two near-duplicate sentences in
+`/Fact Check` brought back a fault that had been fixed. `docs/development.md` describes the live
+suite used to catch that sort of thing.
+
+**A command you have overridden stops receiving fixes.** Your copy is frozen at the day you took
+it; later corrections to that command reach everyone except you, silently. Delete your version to
+go back to the maintained one.

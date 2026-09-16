@@ -196,6 +196,8 @@ Still stuck? Open the Logseq developer console (`Ctrl+Shift+I`) — the full err
 
 - [How it works](./docs/how-it-works.md) — what the commands do to a block, the two Logseq
   storage backends, rewriting a block that has children, and how `/Verify Online` checks a claim.
+- [The built-in prompts](./docs/built-in-prompts.md) — every command's prompt as it is sent,
+  to read or to copy as the starting point for your own.
 - [Writing your own commands](./docs/custom-prompts.md) — custom prompts: the fields, the four
   output modes, and letting one search the web.
 - [Development](./docs/development.md) — building and testing, the live prompt suite, and what

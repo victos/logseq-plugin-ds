@@ -174,6 +174,8 @@ DeepSeek 的 API 现在在自己的报错里把模型叫做 `deepseek-flash` 和
 
 - [工作原理](./docs/how-it-works.zh-CN.md) —— 命令对块做了什么、Logseq 的两种存储后端、
   改写带子块的块，以及 `/Verify Online` 如何核查一条说法。
+- [内置 prompt 全文](./docs/built-in-prompts.zh-CN.md) —— 每条命令实际发送的 prompt，
+  可以读，也可以复制出来作为自己那条的起点。
 - [自定义命令](./docs/custom-prompts.zh-CN.md) —— 字段、四种输出模式，以及怎么让它联网。
 - [开发者信息](./docs/development.zh-CN.md) —— 构建与测试、live prompt 套件，
   以及相比原项目改了什么。
